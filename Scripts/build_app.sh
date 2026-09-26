@@ -11,6 +11,36 @@ APP_NAME="MacGuard"
 BUNDLE_ID="com.furkanberkay.macguard"
 OUT="build.noindex/${APP_NAME}.app"
 
+# Command Line Tools, macOS 27 SDK'sıyla birlikte SwiftUI'nin makro eklentisini
+# (libSwiftUIMacros) getirmiyor; o SDK'da @State bir makro olduğu için derleme
+# yüzlerce hatayla düşüyor. Xcode kuruluysa onu, değilse CLT'nin içindeki eski
+# SDK'yı kullan.
+DEV_DIR="${DEVELOPER_DIR:-$(xcode-select -p 2>/dev/null || true)}"
+if [[ "$DEV_DIR" == *CommandLineTools* ]] \
+   && [ ! -f "$DEV_DIR/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib" ]; then
+  SDK_MAJOR="$(xcrun --sdk macosx --show-sdk-version 2>/dev/null | cut -d. -f1)"
+  if [ "${SDK_MAJOR:-0}" -ge 27 ]; then
+    XCODE_APP="$(ls -d /Applications/Xcode*.app 2>/dev/null | head -1 || true)"
+    OLD_SDK=""
+    for sdk in "$DEV_DIR"/SDKs/MacOSX[0-9]*.sdk; do
+      [ -d "$sdk" ] || continue
+      ver="$(basename "$sdk" .sdk)"; ver="${ver#MacOSX}"
+      [ "${ver%%.*}" -lt 27 ] && OLD_SDK="$sdk"
+    done
+    if [ -n "$XCODE_APP" ]; then
+      export DEVELOPER_DIR="$XCODE_APP/Contents/Developer"
+      echo "  not: Command Line Tools eksik, $XCODE_APP ile derleniyor"
+    elif [ -n "$OLD_SDK" ]; then
+      export SDKROOT="$OLD_SDK"
+      echo "  not: Command Line Tools eksik, $(basename "$OLD_SDK") ile derleniyor"
+    else
+      echo "✗ Bu Command Line Tools sürümü SwiftUI'yi derleyemiyor."
+      echo "  App Store'dan Xcode'u kur (ücretsiz) ve betiği tekrar çalıştır."
+      exit 1
+    fi
+  fi
+fi
+
 echo "▸ Swift derleniyor (release)…"
 swift build -c release
 
