@@ -42,6 +42,14 @@ ok "Swift $(swift --version 2>/dev/null | head -1 | grep -o 'version [0-9.]*' | 
 
 # --- 3. Derle ---
 cd "$(dirname "${BASH_SOURCE[0]}")"
+
+# Sabit imza olmadan her yeniden kurulumda kamera izni düşer.
+if ./Scripts/setup_signing.sh >/tmp/macguard-signing.log 2>&1; then
+  ok "Yerel imza kimliği hazır"
+else
+  warn "Yerel imza kurulamadı, ad-hoc imzayla devam (kayıt: /tmp/macguard-signing.log)"
+fi
+
 say ""
 say "Derleniyor… (ilk seferde bir dakika sürebilir)"
 if ! ./Scripts/build_app.sh >/tmp/macguard-build.log 2>&1; then
@@ -65,7 +73,7 @@ if [ -d "/Applications/MacGuard.app" ]; then
   warn "Eski sürüm siliniyor"
   rm -rf "/Applications/MacGuard.app"
 fi
-cp -R "build/MacGuard.app" "/Applications/MacGuard.app"
+cp -R "build.noindex/MacGuard.app" "/Applications/MacGuard.app"
 # Kendi derlediğimiz için karantina damgası yok, yine de garanti olsun.
 xattr -dr com.apple.quarantine "/Applications/MacGuard.app" 2>/dev/null || true
 ok "Kuruldu: /Applications/MacGuard.app"
@@ -75,7 +83,7 @@ say ""
 open "/Applications/MacGuard.app"
 printf "${BOLD}Hazır.${OFF} Uygulama açılıyor.\n\n"
 say "Sırada:"
-say "  1. PIN belirle — alarmı durdurabilen tek şey bu"
+say "  1. Susturma yöntemini seç (PIN ya da Parmak İzi) ve PIN belirle"
 say "  2. 'İzin iste' ile kamera iznini ver"
 say "  3. 'Kamerayı Ayarla' ile eşikleri kendi ortamına göre ayarla"
 say ""

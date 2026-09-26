@@ -1,6 +1,7 @@
 # Derleme çıktıları
 .build/
 build/
+build.noindex/
 *.app
 DerivedData/
 *.xcuserstate
