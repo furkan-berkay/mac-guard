@@ -194,10 +194,6 @@ struct LockScreenView: View {
                         })
                     .frame(width: 310)
 
-                    DeveloperEscapeButton {
-                        if isPreview { onPreviewDismiss?() } else { engine.developerDisarm() }
-                    }
-
                     if isPreview {
                         Button {
                             onPreviewDismiss?()

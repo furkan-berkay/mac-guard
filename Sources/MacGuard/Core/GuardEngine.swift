@@ -218,14 +218,6 @@ final class GuardEngine: ObservableObject {
         return true
     }
 
-    /// Geliştirme sürecindeki kaçış kapısı: doğrulama olmadan her şeyi kapatır.
-    /// `AppInfo.developerEscapeHatch` kapatılınca düğmesi hiçbir yerde görünmez.
-    func developerDisarm() {
-        guard AppInfo.developerEscapeHatch, state.isProtecting else { return }
-        teardown(reason: "Geliştirici düğmesi")
-        quitAfterDisarm()
-    }
-
     /// Touch ID ile korumayı kapatır. PIN bekleme cezası burada geçerli değil:
     /// o ceza tahmin denemelerine karşı, parmak izi tahmin edilemez ve Touch ID'nin
     /// kendi deneme kilidi var.

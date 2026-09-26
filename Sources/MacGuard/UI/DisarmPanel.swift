@@ -245,25 +245,3 @@ private struct EmbeddedTouchIDView: NSViewRepresentable {
 
     func updateNSView(_: LAAuthenticationView, context _: Context) {}
 }
-
-/// Geliştirme sürecinde perdelerde duran, doğrulamasız kapatma düğmesi.
-/// `AppInfo.developerEscapeHatch` false olunca hiç çizilmez.
-struct DeveloperEscapeButton: View {
-    var action: () -> Void = { GuardEngine.shared.developerDisarm() }
-
-    var body: some View {
-        if AppInfo.developerEscapeHatch {
-            Button(action: action) {
-                Label("GELİŞTİRİCİ: ALARMI KAPAT", systemImage: "hammer.fill")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .tracking(1)
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 18)
-                    .frame(minHeight: 40)
-                    .background(Capsule().fill(Theme.arming))
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-}

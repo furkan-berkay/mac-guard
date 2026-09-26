@@ -129,8 +129,6 @@ struct AlarmOverlayView: View {
                 .frame(width: 320)
                 .padding(.top, 12)
 
-                DeveloperEscapeButton()
-
                 Spacer()
             }
             .padding(40)
