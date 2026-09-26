@@ -1,6 +1,5 @@
 import Foundation
 import AppKit
-import CoreAudio
 import Combine
 import LocalAuthentication
 
@@ -63,17 +62,11 @@ final class GuardEngine: ObservableObject {
     private let settings = Settings.shared
     private let log = EventLog.shared
 
-    private let siren = AlarmSiren()
-    private let speech = SpeechAlert()
+    private let outputs = AlarmOutputs()
     private let sleepBlocker = SleepBlocker()
     private var sensors: [Sensor] = []
 
     private var countdownTimer: Timer?
-    private var previousVolumeScalar: Float?
-    private var previousMuted = false
-    private var previousOutputDevice: AudioDeviceID?
-    /// Alarm sırasında sesi kısmaya çalışanı geri alan nöbetçi.
-    private var volumeWatchdog: DispatchSourceTimer?
 
     private var warningTimer: Timer?
     private var wakeObserver: NSObjectProtocol?
@@ -282,7 +275,7 @@ final class GuardEngine: ObservableObject {
         OverlayGuardian.shared.stop()
         AlarmOverlayController.shared.hide()
         LockScreenController.shared.hide()
-        restorePresentationOptions()
+        EscapeLockdown.release()
 
         countdownTimer?.invalidate()
         countdownTimer = nil
@@ -383,9 +376,9 @@ final class GuardEngine: ObservableObject {
         state = .warning(reason: event.kind, remaining: settings.graceSeconds)
 
         LockScreenController.shared.hide()
-        applyAlarmAudio()
+        outputs.applyAudio()
         SystemKeyLock.shared.engage()
-        siren.start(mode: .warning)
+        outputs.startSiren(.warning)
         sleepBlocker.beginDisplayAwake()
         AlarmOverlayController.shared.show(reason: event, warning: true)
         NSApp.activate(ignoringOtherApps: true)
@@ -418,88 +411,28 @@ final class GuardEngine: ObservableObject {
         state = .alarming(reason: event.kind)
 
         // 1) Alarmın duyulacağından emin ol.
-        applyAlarmAudio()
+        outputs.applyAudio()
         SystemKeyLock.shared.engage()
 
         // 2) Sesi başlat (uyarı bipi çalıyorsa tam sirene yükselir).
-        siren.start(mode: .full)
-        if settings.speakWarning {
-            speech.startRepeating(settings.warningText)
-        }
+        outputs.startSiren(.full)
+        outputs.speakWarning()
 
         // 3) Ekranı uyandır, kilit ekranını bas, kaçış yollarını kapat.
         sleepBlocker.beginDisplayAwake()
-        applyLockdownPresentationOptions()
+        EscapeLockdown.engage()
         LockScreenController.shared.hide()
         AlarmOverlayController.shared.show(reason: event, warning: false)
         NSApp.activate(ignoringOtherApps: true)
         OverlayGuardian.shared.start()
 
         // 4) Kanıtı topla ve telefona haber ver.
-        remoteAlertTask = Task { await self.dispatchRemoteAlert(for: event) }
-    }
-
-    /// Sesi alarm seviyesine getirir ve nöbetçiyi başlatır.
-    /// Uyarı aşamasında da çağrılır: bip duyulmazsa anlamı kalmaz.
-    private func applyAlarmAudio() {
-        if settings.forceBuiltInSpeakers, previousOutputDevice == nil {
-            previousOutputDevice = AudioOutputControl.switchToBuiltInSpeakers()
-        }
-        if settings.forceMaxVolume {
-            if previousVolumeScalar == nil {
-                previousVolumeScalar = AudioOutputControl.outputVolume()
-                previousMuted = AudioOutputControl.isOutputMuted()
-            }
-            AudioOutputControl.setOutputVolume(Float(settings.alarmVolume))
-        }
-        MediaKeyShield.shared.engage()
-        startVolumeWatchdog()
-    }
-
-    /// Hırsız ses tuşuna basarsa ya da sessize alırsa saniyede bir geri alır.
-    /// CoreAudio kullandığı için arka planda dönebiliyor; ana iş parçacığına dokunmaz.
-    private func startVolumeWatchdog() {
-        stopVolumeWatchdog()
-        let forceVolume = settings.forceMaxVolume
-        let forceDevice = settings.forceBuiltInSpeakers
-        guard forceVolume || forceDevice else { return }
-        let target = Float(settings.alarmVolume)
-
-        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInitiated))
-        timer.schedule(deadline: .now() + 1.0, repeating: 1.0)
-        timer.setEventHandler {
-            if forceDevice { AudioOutputControl.ensureBuiltInSpeakers() }
-            guard forceVolume else { return }
-            if AudioOutputControl.isOutputMuted() { AudioOutputControl.setMuted(false) }
-            // Sesi yükseltene karışma, yalnızca kısılmışsa geri al.
-            if let current = AudioOutputControl.outputVolume(), current < target - 0.02 {
-                AudioOutputControl.setOutputVolume(target)
-            }
-        }
-        timer.resume()
-        volumeWatchdog = timer
-    }
-
-    private func stopVolumeWatchdog() {
-        volumeWatchdog?.cancel()
-        volumeWatchdog = nil
+        remoteAlertTask = Task { await RemoteAlert.dispatch(for: event) }
     }
 
     private func stopAlarmOutputs() {
-        stopVolumeWatchdog()
-        siren.stop()
-        speech.stop()
-        MediaKeyShield.shared.release()
+        outputs.stop()
         SystemKeyLock.shared.release()
-        if let v = previousVolumeScalar {
-            AudioOutputControl.setOutputVolume(v)
-            AudioOutputControl.setMuted(previousMuted)
-            previousVolumeScalar = nil
-        }
-        if let d = previousOutputDevice {
-            AudioOutputControl.restoreOutputDevice(d)
-            previousOutputDevice = nil
-        }
     }
 
     /// Sistem uykudan uyandığında alarmı kaldığı yerden sürdürür.
@@ -518,81 +451,15 @@ final class GuardEngine: ObservableObject {
         log.log("Sistem uyandı — alarm sürdürülüyor",
                 icon: "alarm.waves.left.and.right.fill", severity: .alarm)
 
-        applyAlarmAudio()
-
-        // Uykudan sonra motor ölü olsa da isPlaying true kalabilir; zorla yeniden kur.
-        siren.stop()
-        siren.start(mode: state.isAlarming ? .full : .warning)
-        if state.isAlarming, settings.speakWarning {
-            speech.startRepeating(settings.warningText)
-        }
+        outputs.applyAudio()
+        outputs.restartSiren(state.isAlarming ? .full : .warning)
+        if state.isAlarming { outputs.speakWarning() }
 
         sleepBlocker.beginDisplayAwake()
         if let trigger = lastTrigger {
             AlarmOverlayController.shared.show(reason: trigger, warning: state.isWarning)
         }
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    // MARK: - Telefona bildirim
-
-    private func dispatchRemoteAlert(for event: TriggerEvent) async {
-        let photo: Data? = settings.captureIntruderPhoto ? CameraSensor.shared.snapshotJPEG() : nil
-
-        // Kareyi önce diske yaz: telefon bildirimi kapalı olsa da kanıt kalsın.
-        if let photo {
-            let saved = SnapshotStore.save(photo, kind: event.kind, date: event.date)
-            log.log("Davetsiz misafir fotoğrafı kaydedildi",
-                    detail: saved?.lastPathComponent ?? "kaydedilemedi",
-                    icon: "camera.fill", severity: .warn)
-        } else if settings.captureIntruderPhoto {
-            log.log("Fotoğraf çekilemedi",
-                    detail: "Kamera kapalı ya da izin verilmemiş",
-                    icon: "camera.badge.ellipsis", severity: .warn)
-        }
-
-        guard settings.pushEnabled else { return }
-        let config = NtfyClient.Config(server: settings.pushServer, topic: settings.pushTopic)
-        guard config.url != nil else { return }
-
-        let time = DateFormatter.localizedString(from: event.date, dateStyle: .none, timeStyle: .medium)
-        let textResult = await NtfyClient.send(config: config,
-                                               title: "MacGuard alarmı!",
-                                               message: "\(event.message)\nSaat: \(time)")
-        var photoResult: NtfyClient.SendResult?
-        if let photo {
-            photoResult = await NtfyClient.sendPhoto(config: config, jpeg: photo)
-        }
-
-        await MainActor.run {
-            // Başarısızlığı yutma: bildirim gitmediyse kullanıcı bunu bilmeli,
-            // yoksa telefonunun haber vereceğini sanarak güvenir.
-            if textResult.isSuccess, photoResult?.isSuccess ?? true {
-                self.log.log("Telefona bildirim gönderildi",
-                             detail: "ntfy · \(self.settings.pushTopic)",
-                             icon: "iphone.radiowaves.left.and.right", severity: .info)
-            } else {
-                let reason = textResult.isSuccess ? (photoResult?.message ?? "") : textResult.message
-                self.log.log("Telefona bildirim GÖNDERİLEMEDİ", detail: reason,
-                             icon: "exclamationmark.iphone", severity: .warn)
-            }
-        }
-    }
-
-    // MARK: - Kaçışı zorlaştırma
-
-    private func applyLockdownPresentationOptions() {
-        NSApp.presentationOptions = [
-            .hideDock, .hideMenuBar,
-            .disableProcessSwitching,
-            .disableForceQuit,
-            .disableSessionTermination,
-            .disableHideApplication
-        ]
-    }
-
-    private func restorePresentationOptions() {
-        NSApp.presentationOptions = []
     }
 
     /// Koruma açıkken uygulamanın kapatılmasını engeller.
@@ -608,7 +475,7 @@ final class GuardEngine: ObservableObject {
         OverlayGuardian.shared.stop()
         AlarmOverlayController.shared.hide()
         LockScreenController.shared.hide()
-        restorePresentationOptions()
+        EscapeLockdown.release()
     }
 
     // MARK: - Kalibrasyon ve önizleme (koruma kapalıyken)
@@ -667,20 +534,15 @@ final class GuardEngine: ObservableObject {
         LockScreenController.shared.hide()
     }
 
-    /// Sireni birkaç saniye çalar. Sistem sesini değiştirmez —
-    /// gerçek alarmın aksine burada sesi sen kontrol edersin.
     /// Alarmı gerçekteki gibi kısa süre çalar: aynı ses seviyesi ve çıkış, sesli
     /// uyarıyla birlikte. Bitince sistem sesi ve çıkış aygıtı eski hâline döner.
     func previewSiren(seconds: Double = 5) {
         guard case .disarmed = state, !isPreviewingSiren else { return }
         isPreviewingSiren = true
-        applyAlarmAudio()
         // Önizlemede kısılan sesi geri alan nöbetçiye gerek yok.
-        stopVolumeWatchdog()
-        siren.start(mode: .full)
-        if settings.speakWarning {
-            speech.startRepeating(settings.warningText, every: seconds + 1)
-        }
+        outputs.applyAudio(guardVolume: false)
+        outputs.startSiren(.full)
+        outputs.speakWarning(every: seconds + 1)
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
             // Bu arada koruma açıldıysa ses artık alarmın, dokunma.
