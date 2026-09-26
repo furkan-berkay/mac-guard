@@ -8,7 +8,7 @@ import SwiftUI
 /// Touch ID seçili ama o an kullanılamıyorsa PIN'e düşer; sahibi hiçbir durumda
 /// alarmı susturamaz hâle gelmemeli.
 struct DisarmPanel: View {
-    let pinTitle: String
+    let pinTitle: LocalizedStringKey
     let onPin: (String) -> Bool
     let onBiometric: (LAContext) async -> BiometricAuth.Outcome
 
@@ -46,7 +46,7 @@ struct DisarmPanel: View {
         }
     }
 
-    private func switchLink(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+    private func switchLink(_ title: LocalizedStringKey, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.system(size: 13, weight: .semibold))
@@ -123,7 +123,7 @@ final class TouchIDCoordinator: ObservableObject {
             case .failed(let why):
                 self.failure = why
             case .notRecognized:
-                self.failure = "Parmak izi tanınmadı"
+                self.failure = String(localized: "Parmak izi tanınmadı")
             case .cancelled:
                 // Kendi iptallerimiz generation'ı artırdığı için buraya gelmez. Buraya
                 // düşen iptal sistemden: uyku, ekran kilidi, Touch ID düğmesine basılması.

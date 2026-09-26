@@ -87,9 +87,9 @@ final class USBSensor: Sensor {
         }
 
         guard !names.isEmpty else { return }
-        let label = names.first ?? "USB aygıt"
-        let verb = attached ? "takıldı" : "çıkarıldı"
-        emit(TriggerEvent(kind: .usb, message: "\(label) \(verb)"))
+        let label = names.first ?? String(localized: "USB aygıt")
+        let message = attached ? String(localized: "\(label) takıldı") : String(localized: "\(label) çıkarıldı")
+        emit(TriggerEvent(kind: .usb, message: message))
     }
 
     private static func deviceName(_ service: io_service_t) -> String {
@@ -104,6 +104,6 @@ final class USBSensor: Sensor {
             let s = String(cString: name)
             if !s.isEmpty { return s }
         }
-        return "USB aygıt"
+        return String(localized: "USB aygıt")
     }
 }

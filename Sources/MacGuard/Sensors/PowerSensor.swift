@@ -48,6 +48,6 @@ final class PowerSensor: Sensor {
         defer { lastWasAC = isAC }
         // Sadece "takılıyken çıkarıldı" geçişi tetikler.
         guard lastWasAC, !isAC else { return }
-        emit(TriggerEvent(kind: .power, message: "Şarj kablosu çıkarıldı"))
+        emit(TriggerEvent(kind: .power, message: String(localized: "Şarj kablosu çıkarıldı")))
     }
 }

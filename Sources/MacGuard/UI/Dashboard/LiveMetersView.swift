@@ -12,8 +12,8 @@ struct LiveMetersView: View {
             VStack(spacing: 14) {
                 if settings.isEnabled(.motion) {
                     WatchStateBadge(ready: engine.motionWatchReady,
-                                    readyText: "Hareket nöbette",
-                                    waitingText: "Hareket: sahne sakinleşmesi bekleniyor")
+                                    readyText: String(localized: "Hareket nöbette"),
+                                    waitingText: String(localized: "Hareket: sahne sakinleşmesi bekleniyor"))
                     MeterRow(label: "Değişimin şiddeti",
                              value: engine.liveMotionScore,
                              threshold: settings.motionSensitivity,
@@ -30,8 +30,8 @@ struct LiveMetersView: View {
                         Divider().overlay(Theme.stroke).padding(.vertical, 2)
                     }
                     WatchStateBadge(ready: engine.proximityWatchReady,
-                                    readyText: "Yakınlık nöbette",
-                                    waitingText: "Yakınlık: kadrajın boşalması bekleniyor")
+                                    readyText: String(localized: "Yakınlık nöbette"),
+                                    waitingText: String(localized: "Yakınlık: kadrajın boşalması bekleniyor"))
                     MeterRow(label: "Yüz büyüklüğü",
                              value: engine.liveFaceHeight,
                              threshold: settings.proximityThreshold,
@@ -52,7 +52,7 @@ struct LiveMetersView: View {
 }
 
 struct MeterRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: Double
     let threshold: Double
     let maxValue: Double

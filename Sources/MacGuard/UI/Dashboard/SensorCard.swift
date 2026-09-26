@@ -37,7 +37,7 @@ struct SensorCard: View {
                 Text(kind.title)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
-                Text(isUnsupported ? "Bu Mac kapak durumunu bildirmiyor." : kind.detail)
+                Text(isUnsupported ? String(localized: "Bu Mac kapak durumunu bildirmiyor.") : kind.detail)
                     .font(.system(size: 11.5))
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

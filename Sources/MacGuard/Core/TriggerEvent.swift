@@ -14,25 +14,25 @@ enum TriggerKind: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .motion:     return "Hareket"
-        case .proximity:  return "Yakınlık"
-        case .power:      return "Şarj Kablosu"
-        case .clamshell:  return "Ekran Kapağı"
-        case .usb:        return "USB Aygıt"
-        case .input:      return "Klavye / Trackpad"
-        case .display:    return "Harici Ekran"
+        case .motion:     return String(localized: "Hareket")
+        case .proximity:  return String(localized: "Yakınlık")
+        case .power:      return String(localized: "Şarj Kablosu")
+        case .clamshell:  return String(localized: "Ekran Kapağı")
+        case .usb:        return String(localized: "USB Aygıt")
+        case .input:      return String(localized: "Klavye / Trackpad")
+        case .display:    return String(localized: "Harici Ekran")
         }
     }
 
     var detail: String {
         switch self {
-        case .motion:     return "Kamera görüntüsü topluca kayarsa bilgisayar yerinden oynatılmış demektir."
-        case .proximity:  return "Biri kameraya haddinden fazla yaklaşırsa uyarır."
-        case .power:      return "Şarj adaptörü prizden ya da bilgisayardan çıkarılırsa."
-        case .clamshell:  return "Ekran kapağı kapatılırsa."
-        case .usb:        return "Bir USB bellek, kablo ya da aygıt takılır/çıkarılırsa."
-        case .input:      return "Elini çektikten 2 sn sonra nöbete geçer; sonraki her dokunuş, F tuşları ve güç düğmesine basmak alarmı çaldırır."
-        case .display:    return "Harici monitör / dock bağlantısı koparılırsa."
+        case .motion:     return String(localized: "Kamera görüntüsü topluca kayarsa bilgisayar yerinden oynatılmış demektir.")
+        case .proximity:  return String(localized: "Biri kameraya haddinden fazla yaklaşırsa uyarır.")
+        case .power:      return String(localized: "Şarj adaptörü prizden ya da bilgisayardan çıkarılırsa.")
+        case .clamshell:  return String(localized: "Ekran kapağı kapatılırsa.")
+        case .usb:        return String(localized: "Bir USB bellek, kablo ya da aygıt takılır/çıkarılırsa.")
+        case .input:      return String(localized: "Elini çektikten 2 sn sonra nöbete geçer; sonraki her dokunuş, F tuşları ve güç düğmesine basmak alarmı çaldırır.")
+        case .display:    return String(localized: "Harici monitör / dock bağlantısı koparılırsa.")
         }
     }
 

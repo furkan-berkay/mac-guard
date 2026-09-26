@@ -188,7 +188,7 @@ struct LockScreenView: View {
                             guard isPreview else {
                                 return await engine.disarm(biometricContext: context)
                             }
-                            let outcome = await BiometricAuth.evaluate(context, reason: "Önizlemeyi kapat")
+                            let outcome = await BiometricAuth.evaluate(context, reason: String(localized: "Önizlemeyi kapat"))
                             if outcome == .success { onPreviewDismiss?() }
                             return outcome
                         })

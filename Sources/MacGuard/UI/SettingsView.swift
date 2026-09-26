@@ -231,9 +231,9 @@ struct SettingsView: View {
                     // Ses seviyesi zorlanmıyorsa önizleme sistem sesiyle çalar;
                     // sessizdeyse hiçbir şey duyulmaz ve düğme bozuk sanılıyor.
                     if !settings.forceMaxVolume, AudioOutputControl.isOutputMuted() {
-                        sirenAudioWarning = "Sistem sesi kapalı (sessizde) — önizleme duyulmaz. Sesi açıp tekrar dene."
+                        sirenAudioWarning = String(localized: "Sistem sesi kapalı (sessizde) — önizleme duyulmaz. Sesi açıp tekrar dene.")
                     } else if settings.forceMaxVolume, settings.alarmVolume < 0.05 {
-                        sirenAudioWarning = "Alarm ses seviyesi neredeyse sıfır — önizleme duyulmaz."
+                        sirenAudioWarning = String(localized: "Alarm ses seviyesi neredeyse sıfır — önizleme duyulmaz.")
                     } else {
                         sirenAudioWarning = nil
                     }
@@ -294,7 +294,7 @@ struct SettingsView: View {
                         Image(systemName: effective.url != nil ? "arrow.right.circle.fill"
                                                                : "exclamationmark.circle.fill")
                         Text(effective.url?.absoluteString
-                             ?? "Adres kurulamadı — sunucu ya da konu adı hatalı")
+                             ?? String(localized: "Adres kurulamadı — sunucu ya da konu adı hatalı"))
                             .font(.system(size: 11, design: .monospaced))
                             .textSelection(.enabled)
                         Spacer()
@@ -332,22 +332,22 @@ struct SettingsView: View {
                         Button("Test bildirimi gönder") {
                             let config = NtfyClient.Config(server: settings.pushServer, topic: settings.pushTopic)
                             guard config.url != nil else {
-                                pushTestResult = "Konu adı geçersiz ya da sunucu adresi hatalı."
+                                pushTestResult = String(localized: "Konu adı geçersiz ya da sunucu adresi hatalı.")
                                 pushTestOK = false
                                 return
                             }
-                            pushTestResult = "Gönderiliyor…"
+                            pushTestResult = String(localized: "Gönderiliyor…")
                             pushTestOK = nil
                             Task {
                                 let result = await NtfyClient.send(
                                     config: config,
-                                    title: "MacGuard testi",
-                                    message: "Bildirimler çalışıyor. 👍",
+                                    title: String(localized: "MacGuard testi"),
+                                    message: String(localized: "Bildirimler çalışıyor. 👍"),
                                     priority: .normal,
                                     tags: ["white_check_mark"])
                                 pushTestResult = result.isSuccess
-                                    ? "Gönderildi — telefonunu kontrol et."
-                                    : "Gönderilemedi. \(result.message)"
+                                    ? String(localized: "Gönderildi — telefonunu kontrol et.")
+                                    : String(localized: "Gönderilemedi. \(result.message)")
                                 pushTestOK = result.isSuccess
                             }
                         }
@@ -577,6 +577,26 @@ extension SettingsView {
 
     var systemSection: some View {
         SettingsSection("Sistem", icon: "gearshape.2") {
+            Picker("Dil", selection: Binding(
+                get: { L10n.selected },
+                set: { newValue in
+                    guard newValue != L10n.selected else { return }
+                    L10n.switchLanguage(to: newValue)
+                }
+            )) {
+                Text("Sistem dili").tag(AppLanguage.system)
+                // Dil adları her dilde kendi yazılışıyla gösterilir.
+                Text(verbatim: "Türkçe").tag(AppLanguage.tr)
+                Text(verbatim: "English").tag(AppLanguage.en)
+            }
+            .disabled(engine.state.isProtecting)
+            Text("Dil değişince MacGuard yeniden başlar. Sesli uyarı ve bildirimler de seçilen dile döner; kendi yazdığın uyarı ve kilit ekranı metinleri olduğu gibi kalır.")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Divider().overlay(Theme.stroke).padding(.vertical, 2)
+
             Toggle("Oturum açılınca MacGuard'ı başlat", isOn: Binding(
                 get: { launchAtLogin },
                 set: { newValue in
@@ -665,17 +685,17 @@ extension SettingsView {
             emergencyDone = true
         } else {
             // Yanlış PIN ve bekleme cezası motorda sayılıyor; burada yalnız gösteriyoruz.
-            emergencyError = "PIN doğru değil."
+            emergencyError = String(localized: "PIN doğru değil.")
         }
     }
 }
 
 struct SettingsSection<Content: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     @ViewBuilder var content: Content
 
-    init(_ title: String, icon: String, @ViewBuilder content: () -> Content) {
+    init(_ title: LocalizedStringKey, icon: String, @ViewBuilder content: () -> Content) {
         self.title = title
         self.icon = icon
         self.content = content()

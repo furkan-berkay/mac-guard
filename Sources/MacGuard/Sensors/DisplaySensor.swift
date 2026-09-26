@@ -19,8 +19,8 @@ final class DisplaySensor: Sensor {
             let now = NSScreen.screens.count
             defer { self.lastCount = now }
             guard now != self.lastCount else { return }
-            let msg = now < self.lastCount ? "Harici ekran bağlantısı koparıldı"
-                                           : "Yeni bir ekran bağlandı"
+            let msg = now < self.lastCount ? String(localized: "Harici ekran bağlantısı koparıldı")
+                                           : String(localized: "Yeni bir ekran bağlandı")
             self.emit(TriggerEvent(kind: .display, message: msg))
         }
     }

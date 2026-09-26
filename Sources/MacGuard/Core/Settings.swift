@@ -60,12 +60,23 @@ final class Settings: ObservableObject {
     @Published var lockScreenText: String { didSet { d.set(lockScreenText, forKey: "lockScreenText") } }
 
     /// Varsayılan metin bilerek yalnızca uygulamanın gerçekten yaptığı şeyleri sayar.
-    static let defaultLockScreenText =
-        "Bu bilgisayar MacGuard ile korunuyor.\n\n"
-        + "\u{2022} Yerinden oynatmak, kapağı kapatmak ya da şarjı çıkarmak alarmı tetikler\n"
-        + "\u{2022} Alarm yalnızca sahibinin PIN'i veya parmak izi ile susturulabilir\n"
-        + "\u{2022} Tetiklendiği anda kamera fotoğraf çeker ve sahibine bildirim gider\n\n"
-        + "Lütfen dokunmayın."
+    static let defaultLockScreenKey = "Bu bilgisayar MacGuard ile korunuyor.\n\n• Yerinden oynatmak, kapağı kapatmak ya da şarjı çıkarmak alarmı tetikler\n• Alarm yalnızca sahibinin PIN'i veya parmak izi ile susturulabilir\n• Tetiklendiği anda kamera fotoğraf çeker ve sahibine bildirim gider\n\nLütfen dokunmayın."
+    static let defaultWarningKey = "Dikkat! Bu bilgisayar korumalıdır. Lütfen uzaklaşın."
+
+    static var defaultLockScreenText: String {
+        Bundle.main.localizedString(forKey: defaultLockScreenKey, value: defaultLockScreenKey, table: nil)
+    }
+
+    static var defaultWarningText: String {
+        Bundle.main.localizedString(forKey: defaultWarningKey, value: defaultWarningKey, table: nil)
+    }
+
+    /// Kayıtlı metin herhangi bir dildeki varsayılanın aynısıysa kullanıcı onu hiç
+    /// değiştirmemiştir; o zaman o anki dilin varsayılanı gösterilsin diye nil döner.
+    private static func customText(_ stored: String?, key: String) -> String? {
+        guard let stored, !L10n.allTranslations(of: key).contains(stored) else { return nil }
+        return stored
+    }
 
     // MARK: Susturma
     @Published var disarmMethod: DisarmMethod { didSet { d.set(disarmMethod.rawValue, forKey: "disarmMethod") } }
@@ -89,10 +100,12 @@ final class Settings: ObservableObject {
         forceMaxVolume       = d.object(forKey: "forceMaxVolume") as? Bool ?? true
         alarmVolume          = d.object(forKey: "alarmVolume") as? Double ?? 1.0
         showLockScreen       = d.object(forKey: "showLockScreen") as? Bool ?? true
-        lockScreenText       = d.string(forKey: "lockScreenText") ?? Settings.defaultLockScreenText
+        lockScreenText       = Settings.customText(d.string(forKey: "lockScreenText"),
+                                                   key: Settings.defaultLockScreenKey) ?? Settings.defaultLockScreenText
         forceBuiltInSpeakers = d.object(forKey: "forceBuiltInSpeakers") as? Bool ?? true
         speakWarning         = d.object(forKey: "speakWarning") as? Bool ?? true
-        warningText          = d.string(forKey: "warningText") ?? "Dikkat! Bu bilgisayar korumalıdır. Lütfen uzaklaşın."
+        warningText          = Settings.customText(d.string(forKey: "warningText"),
+                                                   key: Settings.defaultWarningKey) ?? Settings.defaultWarningText
         captureIntruderPhoto = d.object(forKey: "captureIntruderPhoto") as? Bool ?? true
         blockClamshellSleep  = d.object(forKey: "blockClamshellSleep") as? Bool ?? false
         pushEnabled          = d.object(forKey: "pushEnabled") as? Bool ?? false
@@ -119,8 +132,8 @@ enum DisarmMethod: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .pin:     return "PIN"
-        case .touchID: return "Parmak İzi"
+        case .pin:     return String(localized: "PIN")
+        case .touchID: return String(localized: "Parmak İzi")
         }
     }
 

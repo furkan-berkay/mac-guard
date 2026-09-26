@@ -54,8 +54,27 @@ değişiklikten sonra:
 - [ ] Koruma açıkken bir F tuşuna ve güç düğmesinin kenarına basmak alarm çalıyor
 - [ ] Alarm sırasında ses kısılınca geri geliyor; oynat tuşu Müzik'i açmıyor
 - [ ] Ayarlar → Alarm → **Alarmı 5 saniye dinle** ayarlanan seviyede çalıyor
+- [ ] Metin eklediysen: Ayarlar → Sistem → Dil → English ile ekranda İngilizce görünüyor
 
 Alarm testlerini evde yapıyorsan önce Ayarlar → Alarm'dan ses seviyesini düşür.
+
+## Metinler ve çeviri
+
+Arayüz Türkçe yazılır; anahtar Türkçe metnin kendisidir. İngilizce karşılıkları
+`Resources/en.lproj/Localizable.strings` içinde.
+
+- SwiftUI'ya doğrudan yazılan metinler (`Text("…")`, `Button("…")`) kendiliğinden
+  çevrilir. Düz `String` olarak dolaşan metinleri (olay kaydı, bildirim, sensör
+  mesajı) `String(localized: "…")` ile yaz.
+- Yeni bir metin eklediysen İngilizcesini `en.lproj/Localizable.strings`'e ekle ve
+  kontrol et:
+
+```bash
+python3 Scripts/check_localization.py
+```
+
+Betik anahtarları derleyiciye çıkartır; çevirisi olmayan ya da `%@`, `%lld`
+belirteçleri tutmayan bir metin varsa hata verir. CI'da da çalışır.
 
 ## Kod tarzı
 
@@ -83,6 +102,7 @@ Sources/MacGuard/
 Scripts/
 ├── build_app.sh       .app paketini kurar ve imzalar
 ├── setup_signing.sh   Yerel imza kimliği
+├── check_localization.py  Her metnin İngilizce çevirisi var mı
 ├── make_icon.swift    Uygulama ikonunu çizer
 └── export_siren.swift Sireni WAV dosyasına aktarır
 ```

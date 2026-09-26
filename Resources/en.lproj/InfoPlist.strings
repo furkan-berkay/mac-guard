@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "MacGuard uses the camera to tell when your Mac is moved and when someone gets too close. The image never leaves your Mac; only if you turn on notifications is a single frame sent to your phone when the alarm sounds.";
+"NSAppleEventsUsageDescription" = "MacGuard adjusts the system volume so the alarm is never left muted.";

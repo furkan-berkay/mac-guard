@@ -12,12 +12,12 @@ enum RemoteAlert {
         // Kareyi önce diske yaz: telefon bildirimi kapalı olsa da kanıt kalsın.
         if let photo {
             let saved = SnapshotStore.save(photo, kind: event.kind, date: event.date)
-            log.log("Davetsiz misafir fotoğrafı kaydedildi",
-                    detail: saved?.lastPathComponent ?? "kaydedilemedi",
+            log.log(String(localized: "Davetsiz misafir fotoğrafı kaydedildi"),
+                    detail: saved?.lastPathComponent ?? String(localized: "kaydedilemedi"),
                     icon: "camera.fill", severity: .warn)
         } else if settings.captureIntruderPhoto {
-            log.log("Fotoğraf çekilemedi",
-                    detail: "Kamera kapalı ya da izin verilmemiş",
+            log.log(String(localized: "Fotoğraf çekilemedi"),
+                    detail: String(localized: "Kamera kapalı ya da izin verilmemiş"),
                     icon: "camera.badge.ellipsis", severity: .warn)
         }
 
@@ -27,8 +27,8 @@ enum RemoteAlert {
 
         let time = DateFormatter.localizedString(from: event.date, dateStyle: .none, timeStyle: .medium)
         let textResult = await NtfyClient.send(config: config,
-                                               title: "MacGuard alarmı!",
-                                               message: "\(event.message)\nSaat: \(time)")
+                                               title: String(localized: "MacGuard alarmı!"),
+                                               message: String(localized: "\(event.message)\nSaat: \(time)"))
         var photoResult: NtfyClient.SendResult?
         if let photo {
             photoResult = await NtfyClient.sendPhoto(config: config, jpeg: photo)
@@ -37,12 +37,12 @@ enum RemoteAlert {
         // Başarısızlığı yutma: bildirim gitmediyse kullanıcı bunu bilmeli,
         // yoksa telefonunun haber vereceğini sanarak güvenir.
         if textResult.isSuccess, photoResult?.isSuccess ?? true {
-            log.log("Telefona bildirim gönderildi",
+            log.log(String(localized: "Telefona bildirim gönderildi"),
                     detail: "ntfy · \(settings.pushTopic)",
                     icon: "iphone.radiowaves.left.and.right", severity: .info)
         } else {
             let reason = textResult.isSuccess ? (photoResult?.message ?? "") : textResult.message
-            log.log("Telefona bildirim GÖNDERİLEMEDİ", detail: reason,
+            log.log(String(localized: "Telefona bildirim GÖNDERİLEMEDİ"), detail: reason,
                     icon: "exclamationmark.iphone", severity: .warn)
         }
     }

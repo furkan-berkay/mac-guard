@@ -102,7 +102,7 @@ final class GuardEngine: ObservableObject {
             isPreviewingSiren = false
         }
         guard PinStore.isConfigured else {
-            lastMessage = "Önce bir PIN belirlemelisin."
+            lastMessage = String(localized: "Önce bir PIN belirlemelisin.")
             return
         }
 
@@ -114,7 +114,7 @@ final class GuardEngine: ObservableObject {
                 if granted {
                     self.beginCountdown()
                 } else {
-                    self.lastMessage = "Kamera izni verilmedi. Hareket ve yakınlık algılama çalışmayacak."
+                    self.lastMessage = String(localized: "Kamera izni verilmedi. Hareket ve yakınlık algılama çalışmayacak.")
                     self.beginCountdown()
                 }
             }
@@ -125,7 +125,7 @@ final class GuardEngine: ObservableObject {
 
     private func beginCountdown() {
         let delay = max(Settings.minimumArmDelay, settings.armDelay)
-        log.log("Koruma başlatılıyor", detail: "\(delay) saniye sonra devrede",
+        log.log(String(localized: "Koruma başlatılıyor"), detail: String(localized: "\(delay) saniye sonra devrede"),
                 icon: "shield.lefthalf.filled", severity: .info)
 
         // Kamerayı geri sayım sırasında ısıt; devreye girdiğinde hazır olsun.
@@ -157,7 +157,7 @@ final class GuardEngine: ObservableObject {
         countdownTimer = nil
         CameraSensor.shared.stop()
         state = .disarmed
-        log.log("Koruma iptal edildi", icon: "xmark.shield", severity: .info)
+        log.log(String(localized: "Koruma iptal edildi"), icon: "xmark.shield", severity: .info)
     }
 
     private func finishArming() {
@@ -176,16 +176,16 @@ final class GuardEngine: ObservableObject {
         SystemKeyLock.shared.engage()
         if settings.showLockScreen {
             // Ekran uyursa caydırıcı yazı kimseye görünmez.
-            sleepBlocker.beginDisplayAwake(reason: "MacGuard koruma ekranı açık")
+            sleepBlocker.beginDisplayAwake(reason: String(localized: "MacGuard koruma ekranı açık"))
             LockScreenController.shared.show()
         }
         // Perde bir kez kurulup unutulmaz: ekran düzeni değişirse yeniden kurar,
         // kullanıcı bilgisayara dokunduğunda öne alıp klavyeyi ona verir.
         OverlayGuardian.shared.start()
-        lastMessage = "Koruma aktif. Bilgisayarına göz kulak oluyorum."
-        log.log("Koruma aktif", detail: activeSensorSummary(),
+        lastMessage = String(localized: "Koruma aktif. Bilgisayarına göz kulak oluyorum.")
+        log.log(String(localized: "Koruma aktif"), detail: activeSensorSummary(),
                 icon: "checkmark.shield.fill", severity: .info)
-        NotificationBanner.show(title: "MacGuard koruma modunda", body: activeSensorSummary())
+        NotificationBanner.show(title: String(localized: "MacGuard koruma modunda"), body: activeSensorSummary())
     }
 
     /// PIN ile korumayı kapatır. Yanlış PIN artan bekleme süresiyle cezalandırılır.
@@ -199,14 +199,14 @@ final class GuardEngine: ObservableObject {
                 let wait = min(60, pow(2.0, Double(failedAttempts - 2)) * 5)
                 lockoutUntil = Date().addingTimeInterval(wait)
             }
-            log.log("Hatalı PIN denemesi", detail: "\(failedAttempts). deneme",
+            log.log(String(localized: "Hatalı PIN denemesi"), detail: String(localized: "\(failedAttempts). deneme"),
                     icon: "exclamationmark.lock.fill", severity: .warn)
             return false
         }
 
         failedAttempts = 0
         lockoutUntil = nil
-        teardown(reason: "PIN doğrulandı")
+        teardown(reason: String(localized: "PIN doğrulandı"))
         quitAfterDisarm()
         return true
     }
@@ -216,17 +216,17 @@ final class GuardEngine: ObservableObject {
     /// kendi deneme kilidi var.
     func disarm(biometricContext context: LAContext) async -> BiometricAuth.Outcome {
         guard state.isProtecting else { return .cancelled }
-        let outcome = await BiometricAuth.evaluate(context, reason: "MacGuard korumasını kapat")
+        let outcome = await BiometricAuth.evaluate(context, reason: String(localized: "MacGuard korumasını kapat"))
         switch outcome {
         case .failed(let why):
-            log.log("Touch ID kullanılamadı", detail: why, icon: "touchid", severity: .warn)
+            log.log(String(localized: "Touch ID kullanılamadı"), detail: why, icon: "touchid", severity: .warn)
         case .notRecognized:
-            log.log("Tanınmayan parmak izi", icon: "touchid", severity: .warn)
+            log.log(String(localized: "Tanınmayan parmak izi"), icon: "touchid", severity: .warn)
             // Koruma açıkken birinin parmağını okutması müdahale denemesi. Sensöre
             // dokunmak girdi sayılmadığı için başka hiçbir tetik bunu yakalamıyor.
             // Hangi sensörlerin açık olduğundan bağımsız çalar.
             if case .armed = state {
-                handle(TriggerEvent(kind: .input, message: "Tanınmayan parmak izi okutuldu"),
+                handle(TriggerEvent(kind: .input, message: String(localized: "Tanınmayan parmak izi okutuldu")),
                        regardlessOfSensors: true)
             }
         case .success, .cancelled:
@@ -237,7 +237,7 @@ final class GuardEngine: ObservableObject {
 
         failedAttempts = 0
         lockoutUntil = nil
-        teardown(reason: "Parmak izi doğrulandı")
+        teardown(reason: String(localized: "Parmak izi doğrulandı"))
         quitAfterDisarm()
         return .success
     }
@@ -281,8 +281,8 @@ final class GuardEngine: ObservableObject {
         countdownTimer = nil
         armedSince = nil
         state = .disarmed
-        lastMessage = "Koruma kapatıldı."
-        log.log(wasNoisy ? "Alarm durduruldu" : "Koruma kapatıldı",
+        lastMessage = String(localized: "Koruma kapatıldı.")
+        log.log(wasNoisy ? String(localized: "Alarm durduruldu") : String(localized: "Koruma kapatıldı"),
                 detail: reason, icon: "shield.slash", severity: .info)
     }
 
@@ -350,7 +350,7 @@ final class GuardEngine: ObservableObject {
 
     private func activeSensorSummary() -> String {
         let names = TriggerKind.allCases.filter { settings.isEnabled($0) }.map(\.title)
-        return names.isEmpty ? "Hiçbir sensör seçili değil!" : names.joined(separator: " · ")
+        return names.isEmpty ? String(localized: "Hiçbir sensör seçili değil!") : names.joined(separator: " · ")
     }
 
     // MARK: - Tetik -> Alarm
@@ -448,7 +448,7 @@ final class GuardEngine: ObservableObject {
         }
         guard state.isAlarming || state.isWarning else { return }
 
-        log.log("Sistem uyandı — alarm sürdürülüyor",
+        log.log(String(localized: "Sistem uyandı — alarm sürdürülüyor"),
                 icon: "alarm.waves.left.and.right.fill", severity: .alarm)
 
         outputs.applyAudio()
@@ -486,7 +486,7 @@ final class GuardEngine: ObservableObject {
         guard case .disarmed = state, !isCalibrating else { return }
         Task { @MainActor in
             guard await CameraSensor.requestAccess() else {
-                self.lastMessage = "Kalibrasyon için kamera izni gerekiyor."
+                self.lastMessage = String(localized: "Kalibrasyon için kamera izni gerekiyor.")
                 return
             }
             let cam = CameraSensor.shared
@@ -497,7 +497,7 @@ final class GuardEngine: ObservableObject {
                           proximityThreshold: self.settings.proximityThreshold)
             cam.start()
             self.isCalibrating = true
-            self.lastMessage = "Kalibrasyon açık. Bilgisayarı oynat, çubuk sarı çizgiyi geçiyor mu bak."
+            self.lastMessage = String(localized: "Kalibrasyon açık. Bilgisayarı oynat, çubuk sarı çizgiyi geçiyor mu bak.")
         }
     }
 
@@ -511,7 +511,7 @@ final class GuardEngine: ObservableObject {
         liveFaceHeight = 0
         motionWatchReady = false
         proximityWatchReady = false
-        lastMessage = "Kalibrasyon kapatıldı."
+        lastMessage = String(localized: "Kalibrasyon kapatıldı.")
     }
 
     /// Koruma ekranını korumayı başlatmadan gösterir.
@@ -561,13 +561,13 @@ final class GuardEngine: ObservableObject {
                 case .none:
                     break
                 case .recovered:
-                    self.log.log("Kalan uyku engeli geri alındı",
-                                 detail: "Önceki oturum düzgün kapanmamış",
+                    self.log.log(String(localized: "Kalan uyku engeli geri alındı"),
+                                 detail: String(localized: "Önceki oturum düzgün kapanmamış"),
                                  icon: "bolt.badge.clock", severity: .warn)
                 case .needsAttention:
                     self.sleepLeftoverNeedsAttention = true
-                    self.log.log("Mac uyku engeli açık kalmış",
-                                 detail: "Düzeltilmezse bilgisayar uyumaz",
+                    self.log.log(String(localized: "Mac uyku engeli açık kalmış"),
+                                 detail: String(localized: "Düzeltilmezse bilgisayar uyumaz"),
                                  icon: "exclamationmark.triangle.fill", severity: .warn)
                 }
             }
@@ -578,18 +578,18 @@ final class GuardEngine: ObservableObject {
     func fixSleepLeftover() {
         guard SleepBlocker.clearLeftoverNow() else { return }
         sleepLeftoverNeedsAttention = false
-        log.log("Uyku engeli geri alındı", icon: "checkmark.circle.fill", severity: .info)
+        log.log(String(localized: "Uyku engeli geri alındı"), icon: "checkmark.circle.fill", severity: .info)
     }
 
     /// Sadece test amaçlı: alarmı elle çaldırır.
     func testAlarm() {
         guard case .armed = state else {
-            lastMessage = "Test için önce korumayı başlat."
+            lastMessage = String(localized: "Test için önce korumayı başlat.")
             return
         }
-        let event = TriggerEvent(kind: .motion, message: "Test alarmı")
+        let event = TriggerEvent(kind: .motion, message: String(localized: "Test alarmı"))
         lastTrigger = event
-        log.log("Test alarmı", icon: "bell.badge.fill", severity: .warn)
+        log.log(String(localized: "Test alarmı"), icon: "bell.badge.fill", severity: .warn)
         raiseAlarm(event)
     }
 }

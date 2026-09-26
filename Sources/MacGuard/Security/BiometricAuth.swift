@@ -34,13 +34,13 @@ enum BiometricAuth {
         }
         switch error.flatMap({ LAError.Code(rawValue: $0.code) }) {
         case .biometryNotEnrolled:
-            return .unavailable("Bu Mac'te kayıtlı parmak izi yok")
+            return .unavailable(String(localized: "Bu Mac'te kayıtlı parmak izi yok"))
         case .biometryLockout:
-            return .unavailable("Touch ID kilitlendi, PIN kullan")
+            return .unavailable(String(localized: "Touch ID kilitlendi, PIN kullan"))
         case .biometryNotAvailable, .biometryDisconnected:
-            return .unavailable("Touch ID şu an kullanılamıyor")
+            return .unavailable(String(localized: "Touch ID şu an kullanılamıyor"))
         default:
-            return .unavailable("Bu Mac'te Touch ID yok")
+            return .unavailable(String(localized: "Bu Mac'te Touch ID yok"))
         }
     }
 
@@ -49,7 +49,7 @@ enum BiometricAuth {
         do {
             let ok = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
                                                       localizedReason: reason)
-            return ok ? .success : .failed("Parmak izi doğrulanamadı")
+            return ok ? .success : .failed(String(localized: "Parmak izi doğrulanamadı"))
         } catch let error as LAError {
             switch error.code {
             case .userCancel, .appCancel, .systemCancel:
@@ -57,12 +57,12 @@ enum BiometricAuth {
             case .authenticationFailed:
                 return .notRecognized
             case .biometryLockout:
-                return .failed("Touch ID kilitlendi, PIN kullan")
+                return .failed(String(localized: "Touch ID kilitlendi, PIN kullan"))
             default:
-                return .failed("Touch ID kullanılamadı")
+                return .failed(String(localized: "Touch ID kullanılamadı"))
             }
         } catch {
-            return .failed("Touch ID kullanılamadı")
+            return .failed(String(localized: "Touch ID kullanılamadı"))
         }
     }
 }

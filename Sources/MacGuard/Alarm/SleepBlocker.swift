@@ -31,7 +31,7 @@ final class SleepBlocker {
     // MARK: - Uyku engelleri (izinsiz)
 
     /// Sistem uyumasın (ekran uyuyabilir) — koruma modu için.
-    func beginSystemAwake(reason: String = "MacGuard koruma modu açık") {
+    func beginSystemAwake(reason: String = String(localized: "MacGuard koruma modu açık")) {
         guard idleAssertion == 0 else { return }
         IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
                                     IOPMAssertionLevel(kIOPMAssertionLevelOn),
@@ -40,7 +40,7 @@ final class SleepBlocker {
     }
 
     /// Ekran da açık kalsın — alarm ekranı görünsün diye.
-    func beginDisplayAwake(reason: String = "MacGuard alarmı çalıyor") {
+    func beginDisplayAwake(reason: String = String(localized: "MacGuard alarmı çalıyor")) {
         guard displayAssertion == 0 else { return }
         IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
                                     IOPMAssertionLevel(kIOPMAssertionLevelOn),
@@ -156,7 +156,7 @@ final class SleepBlocker {
         let user = NSUserName()
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
         guard !user.isEmpty, user.unicodeScalars.allSatisfy({ allowed.contains($0) }) else {
-            return (false, "Kullanıcı adında beklenmeyen karakterler var; güvenlik için kural kurulmadı.")
+            return (false, String(localized: "Kullanıcı adında beklenmeyen karakterler var; güvenlik için kural kurulmadı."))
         }
 
         let rule = """
@@ -177,7 +177,7 @@ final class SleepBlocker {
         let tmp = scratch.appendingPathComponent("sudoers-\(UUID().uuidString)")
         let tmpPath = tmp.path
         guard !tmpPath.contains("'") else {
-            return (false, "Geçici dosya yolu beklenmedik biçimde; kural kurulmadı.")
+            return (false, String(localized: "Geçici dosya yolu beklenmedik biçimde; kural kurulmadı."))
         }
         defer { try? FileManager.default.removeItem(at: tmp) }
 
@@ -185,7 +185,7 @@ final class SleepBlocker {
             try rule.write(to: tmp, atomically: true, encoding: .utf8)
             try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tmp.path)
         } catch {
-            return (false, "Geçici dosya yazılamadı: \(error.localizedDescription)")
+            return (false, String(localized: "Geçici dosya yazılamadı: \(error.localizedDescription)"))
         }
 
         // visudo -cf önce sözdizimini doğrular. Bozuk bir dosya asla
@@ -194,23 +194,23 @@ final class SleepBlocker {
                     + "/usr/bin/install -m 0440 -o root -g wheel '\(tmpPath)' '\(sudoersPath)'"
 
         guard runPrivileged(command) else {
-            return (false, "Kural kurulamadı. Şifre penceresi iptal edilmiş olabilir.")
+            return (false, String(localized: "Kural kurulamadı. Şifre penceresi iptal edilmiş olabilir."))
         }
 
         guard privilegeState == .passwordless else {
-            return (false, "Kural yazıldı ama etkin olmadı. /etc/sudoers dosyasında "
-                         + "sudoers.d dizininin dahil edilmemiş olması mümkün.")
+            return (false, String(localized: "Kural yazıldı ama etkin olmadı. /etc/sudoers dosyasında ")
+                         + String(localized: "sudoers.d dizininin dahil edilmemiş olması mümkün."))
         }
-        return (true, "Kuruldu. Bundan sonra şifre sorulmayacak.")
+        return (true, String(localized: "Kuruldu. Bundan sonra şifre sorulmayacak."))
     }
 
     /// Kuralı kaldırır. Bir kez yönetici şifresi ister.
     @discardableResult
     static func removePasswordlessRule() -> (ok: Bool, message: String) {
         guard runPrivileged("/bin/rm -f '\(sudoersPath)'") else {
-            return (false, "Kaldırılamadı. Şifre penceresi iptal edilmiş olabilir.")
+            return (false, String(localized: "Kaldırılamadı. Şifre penceresi iptal edilmiş olabilir."))
         }
-        return (true, "Kaldırıldı. Artık her seferinde şifre sorulacak.")
+        return (true, String(localized: "Kaldırıldı. Artık her seferinde şifre sorulacak."))
     }
 
     // MARK: - Süreç çalıştırma yardımcıları

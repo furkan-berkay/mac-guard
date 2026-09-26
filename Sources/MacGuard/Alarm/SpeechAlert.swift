@@ -25,7 +25,7 @@ final class SpeechAlert {
     private func speak(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "tr-TR")
+        utterance.voice = AVSpeechSynthesisVoice(language: L10n.speechLanguage)
             ?? AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = 0.52
         utterance.volume = 1.0

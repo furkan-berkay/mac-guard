@@ -50,6 +50,10 @@ mkdir -p "$OUT/Contents/MacOS" "$OUT/Contents/Resources"
 
 cp ".build/release/${APP_NAME}" "$OUT/Contents/MacOS/${APP_NAME}"
 cp "Resources/Info.plist"       "$OUT/Contents/Info.plist"
+# Dil dosyaları: anahtarlar Türkçe metnin kendisi, en.lproj çevirileri taşır.
+for lproj in Resources/*.lproj; do
+  cp -R "$lproj" "$OUT/Contents/Resources/"
+done
 printf 'APPL????' > "$OUT/Contents/PkgInfo"
 
 echo "▸ İkon üretiliyor…"

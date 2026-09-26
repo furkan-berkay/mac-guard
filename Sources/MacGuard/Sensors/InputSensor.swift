@@ -61,7 +61,7 @@ final class InputSensor: Sensor {
         powerButtonMark = mark
         if isLive, powerPressed {
             lastFired = Date()
-            emit(TriggerEvent(kind: .input, message: "Güç düğmesine basıldı"))
+            emit(TriggerEvent(kind: .input, message: String(localized: "Güç düğmesine basıldı")))
             return
         }
 
@@ -79,7 +79,7 @@ final class InputSensor: Sensor {
         // Aynı dokunuş serisinden saniyede bir kereden fazla olay üretme.
         guard Date().timeIntervalSince(lastFired) > 1.5 else { return }
         lastFired = Date()
-        emit(TriggerEvent(kind: .input, message: "Klavyeye veya trackpad'e dokunuldu"))
+        emit(TriggerEvent(kind: .input, message: String(localized: "Klavyeye veya trackpad'e dokunuldu")))
     }
 
     /// Güç/Touch ID düğmesi klavye girdisi sayılmıyor; olay dinleyerek yakalamak

@@ -74,7 +74,7 @@ enum NtfyClient {
         var isSuccess: Bool { if case .success = self { return true }; return false }
         var message: String {
             switch self {
-            case .success: return "Gönderildi"
+            case .success: return String(localized: "Gönderildi")
             case .failure(let reason): return reason
             }
         }
@@ -89,7 +89,7 @@ enum NtfyClient {
                      tags: [String] = ["rotating_light"]) async -> SendResult {
         guard let base = config.url,
               let root = URL(string: base.deletingLastPathComponent().absoluteString)
-        else { return .failure("Sunucu adresi ya da konu adı geçersiz") }
+        else { return .failure(String(localized: "Sunucu adresi ya da konu adı geçersiz")) }
 
         let payload: [String: Any] = [
             "topic": config.normalizedTopic,
@@ -99,7 +99,7 @@ enum NtfyClient {
             "tags": tags
         ]
         guard let body = try? JSONSerialization.data(withJSONObject: payload) else {
-            return .failure("İstek gövdesi hazırlanamadı")
+            return .failure(String(localized: "İstek gövdesi hazırlanamadı"))
         }
 
         var request = URLRequest(url: root)
@@ -108,7 +108,7 @@ enum NtfyClient {
         request.httpBody = body
         request.timeoutInterval = 12
 
-        return await perform(request, what: "bildirim")
+        return await perform(request, what: String(localized: "bildirim"))
     }
 
     /// İsteği yollar ve **durum kodunu kontrol eder**.
@@ -124,20 +124,20 @@ enum NtfyClient {
                 let detail = String(data: data, encoding: .utf8)?
                     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 NSLog("MacGuard: %@ reddedildi (HTTP %d) — %@", what, http.statusCode, detail)
-                return .failure("Sunucu reddetti (HTTP \(http.statusCode))"
+                return .failure(String(localized: "Sunucu reddetti (HTTP \(http.statusCode))")
                                 + (detail.isEmpty ? "" : ": \(detail.prefix(120))"))
             }
             return .success
         } catch {
             NSLog("MacGuard: %@ gönderilemedi — %@", what, error.localizedDescription)
-            return .failure("Bağlantı kurulamadı: \(error.localizedDescription)")
+            return .failure(String(localized: "Bağlantı kurulamadı: \(error.localizedDescription)"))
         }
     }
 
     /// Davetsiz misafirin fotoğrafını ek olarak gönderir.
     @discardableResult
     static func sendPhoto(config: Config, jpeg: Data, filename: String = "macguard.jpg") async -> SendResult {
-        guard let url = config.url else { return .failure("Adres geçersiz") }
+        guard let url = config.url else { return .failure(String(localized: "Adres geçersiz")) }
 
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
@@ -149,6 +149,6 @@ enum NtfyClient {
         request.httpBody = jpeg
         request.timeoutInterval = 20
 
-        return await perform(request, what: "fotoğraf")
+        return await perform(request, what: String(localized: "fotoğraf"))
     }
 }

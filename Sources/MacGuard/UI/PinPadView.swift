@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Tuş takımı. Hem ekrandaki düğmelerden hem fiziksel klavyeden giriş kabul eder.
 struct PinPadView: View {
-    let title: String
+    let title: LocalizedStringKey
     /// PIN dolunca çağrılır; doğruysa true döndürmeli.
     let onSubmit: (String) -> Bool
 
@@ -115,7 +115,7 @@ struct PinPadView: View {
             pin = ""
             errorText = nil
         } else {
-            errorText = "Hatalı PIN"
+            errorText = String(localized: "Hatalı PIN")
             pin = ""
             withAnimation(.default) { shake = -12 }
             withAnimation(.spring(response: 0.25, dampingFraction: 0.25).delay(0.02)) { shake = 0 }
@@ -195,16 +195,16 @@ struct PinSetupView: View {
     private func save() {
         let digits = first.trimmingCharacters(in: .whitespaces)
         guard digits.count >= 4, digits.allSatisfy(\.isNumber) else {
-            error = "PIN en az 4 rakam olmalı."
+            error = String(localized: "PIN en az 4 rakam olmalı.")
             return
         }
         guard digits == second.trimmingCharacters(in: .whitespaces) else {
-            error = "İki PIN aynı değil."
+            error = String(localized: "İki PIN aynı değil.")
             return
         }
         PinStore.set(digits)
         Settings.shared.disarmMethod = method
-        EventLog.shared.log("PIN güncellendi", detail: "Susturma: \(method.title)",
+        EventLog.shared.log(String(localized: "PIN güncellendi"), detail: String(localized: "Susturma: \(method.title)"),
                             icon: "lock.rotation", severity: .info)
         dismiss()
     }

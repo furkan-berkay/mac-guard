@@ -40,7 +40,7 @@ final class ClamshellSensor: Sensor {
             forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            self.emit(TriggerEvent(kind: .clamshell, message: "Bilgisayar uykuya alınıyor"))
+            self.emit(TriggerEvent(kind: .clamshell, message: String(localized: "Bilgisayar uykuya alınıyor")))
         }
     }
 
@@ -57,6 +57,6 @@ final class ClamshellSensor: Sensor {
         guard let closed = Self.isClosed() else { return }
         defer { lastClosed = closed }
         guard closed, !lastClosed else { return }
-        emit(TriggerEvent(kind: .clamshell, message: "Ekran kapağı kapatıldı"))
+        emit(TriggerEvent(kind: .clamshell, message: String(localized: "Ekran kapağı kapatıldı")))
     }
 }

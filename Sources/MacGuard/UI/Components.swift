@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SectionTitle: View {
-    let title: String
-    let subtitle: String?
-    init(_ title: String, subtitle: String? = nil) {
+    let title: LocalizedStringKey
+    let subtitle: LocalizedStringKey?
+    init(_ title: LocalizedStringKey, subtitle: LocalizedStringKey? = nil) {
         self.title = title
         self.subtitle = subtitle
     }

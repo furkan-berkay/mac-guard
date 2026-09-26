@@ -76,7 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Önceki çalıştırma çökerek uyku engelini açık bıraktıysa geri al,
         // yoksa Mac bir daha hiç uyumaz. Alt süreç çalıştırdığı için arka planda.
         GuardEngine.shared.checkSleepLeftover()
-        EventLog.shared.log("MacGuard başlatıldı", icon: "power", severity: .info)
+        EventLog.shared.log(String(localized: "MacGuard başlatıldı"), icon: "power", severity: .info)
     }
 
     /// Koruma açıkken uygulama kapatılamaz; alarmı susturmanın tek yolu PIN.
@@ -89,8 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard GuardEngine.shared.blocksTermination else { return .terminateNow }
 
-        EventLog.shared.log("Kapatma denemesi engellendi",
-                            detail: "Koruma açıkken MacGuard kapatılamaz",
+        EventLog.shared.log(String(localized: "Kapatma denemesi engellendi"),
+                            detail: String(localized: "Koruma açıkken MacGuard kapatılamaz"),
                             icon: "xmark.shield.fill", severity: .warn)
         OverlayGuardian.shared.reassert()
         return .terminateCancel

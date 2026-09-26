@@ -102,6 +102,10 @@ verdiğin izinler sonraki güncellemelerde kaybolmaz.
 Ayarlarda ayrıca uyarı süresi (tam sirenden önce PIN için süre tanıyan kesik bip),
 kilit ekranı metni, kapak kapansa bile uyumama ve telefona bildirim var.
 
+**Dil:** Türkçe ve İngilizce. Varsayılan olarak sistem dilini izler (Türkçe değilse
+İngilizce); Ayarlar → Sistem → **Dil**'den değiştirilebilir. Sesli uyarı ve
+bildirimler de seçilen dile döner.
+
 ## Sınırlar
 
 MacGuard bir **caydırıcı**, kilit değil. Gürültü çıkarır, kanıt toplar ve sana

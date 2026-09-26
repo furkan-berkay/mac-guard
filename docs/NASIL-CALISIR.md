@@ -173,6 +173,22 @@ açıksa sonra ntfy'ye gönderilir. Kurulum: [Telefona bildirim](TELEFON-BILDIRI
 - Uyku engeli açıkken uygulama çökerse bir sonraki açılışta ayar geri alınır.
 - Mac uyuyup uyanırsa alarm kaldığı yerden devam eder.
 
+## Dil
+
+Arayüz metinlerinin anahtarı Türkçe asıl metnin kendisi; İngilizce karşılıkları
+`Resources/en.lproj/Localizable.strings` içinde. Bir anahtarın çevirisi yoksa
+ekranda Türkçe kalır, uygulama bozulmaz.
+
+- **Sistem dili** (varsayılan): macOS Türkçe ise Türkçe, değilse İngilizce
+  (`CFBundleDevelopmentRegion` = `en`).
+- Ayarlardan dil seçilince macOS'un uygulama başına `AppleLanguages` tercihi
+  yazılır ve uygulama yeniden başlar; dil açılışta okunuyor.
+- Sesli uyarı seçilen dilin sesiyle okunur. Varsayılan uyarı ve kilit ekranı
+  metinleri kullanıcı değiştirmediyse dille birlikte değişir; kendi yazdığı metin
+  olduğu gibi kalır.
+- `Scripts/check_localization.py` anahtarları derleyiciden çıkarıp her birinin
+  çevirisini ve biçim belirteçlerini denetler; CI'da çalışır.
+
 ## İmza ve derleme
 
 - `Scripts/build_app.sh` `.app` paketini elle kurar ve imzalar.

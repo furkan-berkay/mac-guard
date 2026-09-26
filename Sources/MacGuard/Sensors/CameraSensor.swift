@@ -114,11 +114,11 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
     /// İzin durumunun okunabilir hâli — arayüzde göstermek için.
     static var authorizationDescription: String {
         switch authorization {
-        case .authorized:    return "verildi"
-        case .denied:        return "reddedildi"
-        case .restricted:    return "kısıtlı"
-        case .notDetermined: return "henüz sorulmadı"
-        @unknown default:    return "bilinmiyor"
+        case .authorized:    return String(localized: "verildi")
+        case .denied:        return String(localized: "reddedildi")
+        case .restricted:    return String(localized: "kısıtlı")
+        case .notDetermined: return String(localized: "henüz sorulmadı")
+        @unknown default:    return String(localized: "bilinmiyor")
         }
     }
 
@@ -175,11 +175,11 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
     func start() {
         guard !isRunning else { return }
         guard Self.authorization == .authorized else {
-            lastError = "Kamera izni verilmemiş"
+            lastError = String(localized: "Kamera izni verilmemiş")
             return
         }
         guard let device = Self.preferredDevice() else {
-            lastError = "Kullanılabilir kamera bulunamadı"
+            lastError = String(localized: "Kullanılabilir kamera bulunamadı")
             return
         }
 
@@ -193,13 +193,13 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
             let input = try AVCaptureDeviceInput(device: device)
             guard session.canAddInput(input) else {
                 session.commitConfiguration()
-                lastError = "Kamera girişi eklenemedi"
+                lastError = String(localized: "Kamera girişi eklenemedi")
                 return
             }
             session.addInput(input)
         } catch {
             session.commitConfiguration()
-            lastError = "Kamera açılamadı: \(error.localizedDescription)"
+            lastError = String(localized: "Kamera açılamadı: \(error.localizedDescription)")
             return
         }
 
@@ -210,7 +210,7 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
         output.setSampleBufferDelegate(self, queue: queue)
         guard session.canAddOutput(output) else {
             session.commitConfiguration()
-            lastError = "Video çıkışı eklenemedi"
+            lastError = String(localized: "Video çıkışı eklenemedi")
             return
         }
         session.addOutput(output)
@@ -341,7 +341,7 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
             lastMotionFire = Date()
             motionStreak = 0
             emit(TriggerEvent(kind: .motion,
-                              message: "Bilgisayar yerinden oynatıldı",
+                              message: String(localized: "Bilgisayar yerinden oynatıldı"),
                               intensity: min(1, reading.coverage)))
         }
         return reading
@@ -380,7 +380,7 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
             lastProximityFire = Date()
             proximityStreak = 0
             emit(TriggerEvent(kind: .proximity,
-                              message: "Biri bilgisayara fazla yaklaştı",
+                              message: String(localized: "Biri bilgisayara fazla yaklaştı"),
                               intensity: min(1, tallest)))
         }
         return tallest

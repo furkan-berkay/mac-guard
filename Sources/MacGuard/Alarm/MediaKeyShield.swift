@@ -30,7 +30,7 @@ final class MediaKeyShield {
         }
         let nowPlaying = MPNowPlayingInfoCenter.default()
         nowPlaying.nowPlayingInfo = [
-            MPMediaItemPropertyTitle: "MacGuard alarmı",
+            MPMediaItemPropertyTitle: String(localized: "MacGuard alarmı"),
             MPNowPlayingInfoPropertyPlaybackRate: 1.0,
         ]
         nowPlaying.playbackState = .playing

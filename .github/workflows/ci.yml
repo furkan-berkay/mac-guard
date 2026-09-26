@@ -28,5 +28,8 @@ jobs:
       - name: Derle (uyarılar hata sayılır)
         run: swift build -c release -Xswiftc -warnings-as-errors
 
+      - name: Her metnin İngilizce çevirisi var mı
+        run: python3 Scripts/check_localization.py
+
       - name: .app paketini üret
         run: ./Scripts/build_app.sh

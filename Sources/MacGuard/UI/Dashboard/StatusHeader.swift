@@ -26,28 +26,28 @@ struct StatusHeader: View {
 
     private var headline: String {
         switch engine.state {
-        case .disarmed:              return "Koruma kapalı"
-        case .arming(let remaining): return "\(remaining) saniye…"
-        case .armed:                 return "Koruma aktif"
-        case .warning(_, let left):  return "Uyarı — \(left) sn"
-        case .alarming:              return "ALARM!"
+        case .disarmed:              return String(localized: "Koruma kapalı")
+        case .arming(let remaining): return String(localized: "\(remaining) saniye…")
+        case .armed:                 return String(localized: "Koruma aktif")
+        case .warning(_, let left):  return String(localized: "Uyarı — \(left) sn")
+        case .alarming:              return String(localized: "ALARM!")
         }
     }
 
     private var subline: String {
         switch engine.state {
         case .disarmed:
-            return "Bilgisayarın şu anda korunmuyor."
+            return String(localized: "Bilgisayarın şu anda korunmuyor.")
         case .arming:
-            return "Çantanı al, kalk — sensörler geri sayım bitince devreye girecek."
+            return String(localized: "Çantanı al, kalk — sensörler geri sayım bitince devreye girecek.")
         case .armed:
             if let since = engine.armedSince {
                 let mins = Int(Date().timeIntervalSince(since)) / 60
-                return mins > 0 ? "\(mins) dakikadır nöbetteyim." : "Nöbet başladı."
+                return mins > 0 ? String(localized: "\(mins) dakikadır nöbetteyim.") : String(localized: "Nöbet başladı.")
             }
-            return "Nöbetteyim."
+            return String(localized: "Nöbetteyim.")
         case .warning:
-            return "PIN girersen alarm çalmayacak."
+            return String(localized: "PIN girersen alarm çalmayacak.")
         case .alarming(let reason):
             return engine.lastTrigger?.message ?? reason.title
         }
