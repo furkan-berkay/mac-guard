@@ -8,7 +8,10 @@ struct MacGuardApp: App {
 
     var body: some Scene {
         WindowGroup("MacGuard") {
+            // Arayüz koyu tasarlandı; açık temada denetimler beyaz çizilip
+            // beyaz metinler görünmez oluyordu.
             DashboardView()
+                .preferredColorScheme(.dark)
         }
         .windowResizability(.contentMinSize)
         .commands {

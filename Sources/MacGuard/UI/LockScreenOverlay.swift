@@ -174,15 +174,29 @@ struct LockScreenView: View {
                 }
 
                 VStack(spacing: 14) {
-                    PinPadView(title: isPreview ? "PIN alanı (önizleme)"
-                                                : "Korumayı kaldırmak için PIN gir") { pin in
-                        guard !isPreview else {
-                            onPreviewDismiss?()
-                            return true
-                        }
-                        return engine.disarm(pin: pin)
-                    }
+                    DisarmPanel(
+                        pinTitle: isPreview ? "PIN alanı (önizleme)"
+                                            : "Korumayı kaldırmak için PIN gir",
+                        onPin: { pin in
+                            guard !isPreview else {
+                                onPreviewDismiss?()
+                                return true
+                            }
+                            return engine.disarm(pin: pin)
+                        },
+                        onBiometric: { context in
+                            guard isPreview else {
+                                return await engine.disarm(biometricContext: context)
+                            }
+                            let outcome = await BiometricAuth.evaluate(context, reason: "Önizlemeyi kapat")
+                            if outcome == .success { onPreviewDismiss?() }
+                            return outcome
+                        })
                     .frame(width: 310)
+
+                    DeveloperEscapeButton {
+                        if isPreview { onPreviewDismiss?() } else { engine.developerDisarm() }
+                    }
 
                     if isPreview {
                         Button {

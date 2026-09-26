@@ -5,14 +5,14 @@
 ![Swift](https://img.shields.io/badge/swift-5.9-orange.svg)
 
 Kafede masada bıraktığın MacBook için hırsızlık alarmı. Koruma modunu başlatırsın,
-bilgisayarına dokunan olursa siren çalar ve ancak senin PIN'inle susar.
+bilgisayarına dokunan olursa siren çalar ve ancak senin PIN'inle ya da parmak izinle susar.
 
 macOS 14+ · Apple Silicon ve Intel · Swift + SwiftUI · **bağımlılık yok**
 
 > **English:** MacGuard is a theft-deterrent alarm for MacBooks left unattended
 > in cafés. Arm it and a siren goes off if the machine is moved, the lid is
 > closed, the charger is unplugged, a USB device is connected, or someone leans
-> too close to the camera. Only your PIN silences it. It also grabs a photo from
+> too close to the camera. Only your PIN or Touch ID silences it. It also grabs a photo from
 > the webcam and can push a notification to your phone. Native Swift + SwiftUI,
 > zero dependencies, MIT licensed. Interface and docs are in Turkish.
 
@@ -75,7 +75,7 @@ Xcode'un tamamına gerek yok.
 
 ## İlk açılışta yapılacaklar
 
-1. **PIN belirle.** Uygulama ilk açılışta sorar. Alarmı durdurabilen tek şey budur.
+1. **PIN belirle.** Uygulama ilk açılışta sorar. Touch ID olan Mac'te parmak izi de alarmı durdurur, ama PIN her zaman çalışan anahtardır.
    PIN düz metin olarak hiçbir yere yazılmaz — 50.000 tur tekrarlanmış, tuzlanmış
    SHA-256 özeti olarak `~/Library/Application Support/MacGuard/pin.json` içinde
    durur (izinler 0600, yalnızca senin kullanıcın okuyabilir).
@@ -142,8 +142,8 @@ Panelde her sensörün kartında **"Nöbette"** mi yoksa **"Sakinleşme bekleniy
 mu yazdığını görürsün — sensör neden çalmıyor sorusu görünmez bir bilmece olmasın.
 
 > Klavye sensörünü masanın başında test ederken buna dikkat et: elini çekip
-> 2 saniye beklemeden nöbete geçmez. "Devreye girme gecikmesi" 0 ise bu daha da
-> belirgin olur. Sen masanın başında oturmaya devam edersen yakınlık sensörü hiç
+> 2 saniye beklemeden nöbete geçmez; fareyi oynatmaya devam ettikçe bekleme baştan
+> başlar. Bu yüzden "Devreye girme gecikmesi" en az 3 saniye. Sen masanın başında oturmaya devam edersen yakınlık sensörü hiç
 nöbete geçmez ve seni asla uyarmaz — ancak sen kalkıp kadraj boşaldıktan sonra
 biri yaklaşırsa alarm çalar.
 
@@ -161,7 +161,7 @@ panik ekranı değil — sakin, okunur bir tabela:
         Bu bilgisayar MacGuard ile korunuyor.
 
         • Yerinden oynatmak, kapağı kapatmak ya da şarjı çıkarmak alarmı tetikler
-        • Alarm yalnızca sahibinin PIN'i ile susturulabilir
+        • Alarm yalnızca sahibinin PIN'i veya parmak izi ile susturulabilir
         • Tetiklendiği anda kamera fotoğraf çeker ve sahibine bildirim gider
 
         Lütfen dokunmayın.
@@ -171,13 +171,32 @@ panik ekranı değil — sakin, okunur bir tabela:
 
 Amaç alarm çalmadan **önce** iş görmek: masaya yaklaşan kişi bilgisayara
 dokunmadan durumu okusun. Hangi sensörlerin nöbette olduğu rozet rozet listelenir —
-caydırıcılık bilginin somut olmasından gelir. Yanında PIN tuş takımı vardır.
+caydırıcılık bilginin somut olmasından gelir. Yanında susturma paneli vardır.
 
 - Metni Ayarlar > Koruma ekranı'ndan değiştirebilirsin
 - **Önizle (10 sn)** düğmesi korumayı başlatmadan nasıl göründüğünü gösterir
 - Özellik tamamen kapatılabilir; o zaman koruma sessizce arka planda çalışır
 - PIN tuş takımı **her ekranda** vardır; ikinci ekran takılı olsa da baktığın
   ekranda PIN girebilirsin
+
+### Parmak iziyle susturma
+
+Alarmın nasıl susturulacağını ilk açılışta PIN belirlerken seçersin: **PIN** ya da
+**Parmak İzi**. Sonradan **Ayarlar > Güvenlik**'ten değiştirebilirsin. Perdeler
+yalnızca seçtiğin yöntemi gösterir. Parmak izi seçiliyse Touch ID doğrudan
+perdenin içinde bekler; sistem penceresi açılmaz, çünkü perde ekran koruyucu
+seviyesinde olduğu için o pencere arkada kalırdı.
+
+- Mac'te Touch ID yoksa ya da kayıtlı parmak izi yoksa "Parmak İzi" seçilemez
+- Yalnızca parmak izi kabul edilir; Mac parolasına düşen bir yedek **yok**
+- Koruma açıkken **tanınmayan bir parmak izi** okutulursa alarm çalar (hangi
+  sensörlerin açık olduğundan bağımsız). İlk hatalı okumada değil: Touch ID'nin
+  kendi tekrar denemeleri de tutmazsa
+- Parmak izi seçsen de PIN belirlemen gerekir. Touch ID kullanılamadığında
+  (kapak kapalı, art arda hatalı denemeden sonra kilitlendi) perde kendiliğinden
+  PIN tuş takımına döner; sahibi alarmı susturamaz hâle gelmez
+- Birden çok ekran varken tek bir Touch ID beklemesi çalışır; hangi ekrana
+  bakarsan bak parmağını okutman yeter
 
 > Varsayılan metin bilerek yalnızca uygulamanın gerçekten yaptığı şeyleri sayar.
 > Örneğin **konum bilgisi gönderilmiyor** — metne öyle bir satır eklersen ekranda
@@ -190,7 +209,7 @@ caydırıcılık bilginin somut olmasından gelir. Yanında PIN tuş takımı va
 
 Ayarlar > Zamanlama > **Uyarı süresi** sıfırdan büyükse, tetik geldiğinde önce
 tam siren değil kesik bir **uyarı bipi** çalar, ekranda geri sayım ve PIN tuş
-takımı görünür. Süre içinde PIN girersen alarm hiç çalmaz. Girmezsen tam sirene
+takımı görünür. Süre içinde PIN girersen ya da parmak izini okutursan alarm hiç çalmaz. Girmezsen tam sirene
 yükselir — ev ve araç alarmlarındaki mantık.
 
 Varsayılan 0'dır (tetik gelir gelmez tam alarm). Yanlış alarmdan çekiniyorsan
@@ -204,8 +223,14 @@ Varsayılan 0'dır (tetik gelir gelmez tam alarm). Yanlış alarmdan çekiniyors
 - Kulaklık takılıysa çıkış **dahili hoparlöre** alınır
 - Siren çalar (kod içinde üretilir, ses dosyası taşınmaz)
 - Türkçe sesli uyarı okunur
-- Tüm ekranları kırmızı bir perde kaplar, **her ekranda** PIN tuş takımı
+- Tüm ekranları kırmızı bir perde kaplar, **her ekranda** susturma paneli (PIN ya da parmak izi)
 - Dock, menü çubuğu, ⌘-Tab, ⌘-Q ve Zorla Çık devre dışı kalır
+- Oynat/duraklat ve ileri/geri tuşları Müzik'i açmaz: alarm süresince MacGuard
+  kendini çalan uygulama olarak bildirir ve bu tuşları yutar (izin gerekmez)
+- **Erişilebilirlik izni verildiyse** koruma açık olduğu sürece klavyeden
+  yalnızca PIN rakamları, sil ve Enter geçer; Odak (F6), Spotlight, Dikte, Mission Control ve medya tuşları
+  çalışmaz. Fare, Touch ID ve güç düğmesi etkilenmez. İzin **Ayarlar > Alarm**'dan
+  istenir; verilmezse alarm yine çalar, yalnızca bu tuşlar kilitlenmez
 - Kameradan davetsiz misafirin fotoğrafı çekilir
 - Açıksa telefonuna bildirim + fotoğraf gider
 
@@ -451,9 +476,17 @@ reddeder.
 **sudoers kuralı** isteğe bağlıdır ve yalnızca iki `pmset` komutunu kapsar.
 Kurmazsan MacGuard hiçbir root yetkisi kullanmaz.
 
-**Kum havuzu yok, notarizasyon yok.** Uygulama ad-hoc imzalıdır; kendi
-bilgisayarında derleyip çalıştırman için tasarlandı. Başkasının derlediği bir
-ikiliyi çalıştırmadan önce kaynağa bak.
+**Kum havuzu yok, notarizasyon yok.** Uygulama ad-hoc ya da yerel bir sertifikayla
+imzalıdır; kendi bilgisayarında derleyip çalıştırman için tasarlandı. Başkasının
+derlediği bir ikiliyi çalıştırmadan önce kaynağa bak.
+
+**Yerel imza kimliği.** Ad-hoc imzada macOS uygulamayı kod özetiyle tanır; her
+derlemede özet değiştiği için kamera izni düşer. `install.sh` bu yüzden ilk
+kurulumda `Scripts/setup_signing.sh` ile kendinden imzalı bir kod imzalama
+sertifikası üretir. Sertifika ücretsizdir, yalnız bu Mac'te geçerlidir ve ayrı bir
+anahtar zinciri dosyasında (`~/Library/Application Support/MacGuard/signing/`)
+durur. Giriş anahtar zincirine ve sistem güven ayarlarına dokunulmaz. Silersen
+derlemeler ad-hoc imzaya döner.
 
 ## Proje yapısı
 
@@ -463,13 +496,14 @@ MacGuard/
 ├── Resources/Info.plist     Bundle kimliği, izin metinleri
 ├── Scripts/
 │   ├── build_app.sh         .app paketi üretir ve imzalar
+│   ├── setup_signing.sh     Kamera izni kalıcı olsun diye yerel imza kimliği kurar
 │   └── make_icon.swift      Uygulama ikonunu çizer
 └── Sources/MacGuard/
     ├── App/                 Giriş, menü çubuğu, künye, giriş öğesi
     ├── Core/                Durum makinesi, ayarlar, olay kaydı
     ├── Sensors/             Kamera, güç, kapak, USB, girdi, ekran
     ├── Alarm/               Siren, ses kontrolü, konuşma, uyku engeli
-    ├── Security/            PIN saklama, davetsiz misafir fotoğrafları
+    ├── Security/            PIN saklama, Touch ID, davetsiz misafir fotoğrafları
     ├── Notify/              ntfy istemcisi
     └── UI/                  Panel, ayarlar, tuş takımı, perdeler
 ```

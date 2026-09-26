@@ -140,19 +140,26 @@ struct KeypadButtonStyle: ButtonStyle {
 /// İlk açılışta veya PIN değiştirirken kullanılan kurulum ekranı.
 struct PinSetupView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var method = Settings.shared.disarmMethod
     @State private var first = ""
     @State private var second = ""
     @State private var error: String?
     @FocusState private var focus: Field?
     private enum Field { case first, second }
 
+    private let touchID = BiometricAuth.availability()
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("PIN belirle", systemImage: "lock.shield.fill")
+            Label("Alarm nasıl susturulsun?", systemImage: "lock.shield.fill")
                 .font(.title2.bold())
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("Alarmı yalnızca bu PIN durdurabilir. En az 4 rakam gir ve unutma — PIN düz metin olarak hiçbir yere yazılmaz, yalnızca geri çevrilemez bir özeti saklanır.")
+            DisarmMethodPicker(method: $method, touchID: touchID)
+
+            Text(method == .touchID
+                 ? "Parmak izin alarmı susturur. Yine de bir PIN belirle: Touch ID kullanılamadığında (kapak kapalı, art arda hatalı deneme) alarm bu PIN'le susar. En az 4 rakam."
+                 : "Alarmı yalnızca bu PIN durdurabilir. En az 4 rakam gir ve unutma — PIN düz metin olarak hiçbir yere yazılmaz, yalnızca geri çevrilemez bir özeti saklanır.")
                 .font(.callout)
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -181,6 +188,7 @@ struct PinSetupView: View {
         .padding(24)
         .frame(width: 420)
         .background(Theme.background)
+        .preferredColorScheme(.dark)
         .onAppear { focus = .first }
     }
 
@@ -195,7 +203,48 @@ struct PinSetupView: View {
             return
         }
         PinStore.set(digits)
-        EventLog.shared.log("PIN güncellendi", icon: "lock.rotation", severity: .info)
+        Settings.shared.disarmMethod = method
+        EventLog.shared.log("PIN güncellendi", detail: "Susturma: \(method.title)",
+                            icon: "lock.rotation", severity: .info)
         dismiss()
+    }
+}
+
+/// PIN / Parmak İzi seçimi. Touch ID yoksa parmak izi pasif ve nedeni yazar.
+struct DisarmMethodPicker: View {
+    @Binding var method: DisarmMethod
+    let touchID: BiometricAuth.Availability
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                ForEach(DisarmMethod.allCases) { option in
+                    let enabled = option == .pin || touchID.isAvailable
+                    Button { method = option } label: {
+                        Label(option.title, systemImage: option.symbol)
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(maxWidth: .infinity, minHeight: 38)
+                            .foregroundStyle(method == option ? Theme.background : Theme.textPrimary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(method == option ? Theme.safe : Theme.surfaceHi)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Theme.stroke, lineWidth: 1)
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!enabled)
+                    .opacity(enabled ? 1 : 0.4)
+                }
+            }
+            if let reason = touchID.reason {
+                Text("Parmak izi: \(reason)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
     }
 }

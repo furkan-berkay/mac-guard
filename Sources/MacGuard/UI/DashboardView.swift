@@ -4,6 +4,7 @@ struct DashboardView: View {
     @ObservedObject private var engine = GuardEngine.shared
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var log = EventLog.shared
+    @ObservedObject private var camera = CameraPermission.shared
 
     @State private var showSettings = false
     @State private var showPinSetup = false
@@ -17,7 +18,7 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     StatusHeader()
-                    if usesCamera, CameraSensor.authorization != .authorized {
+                    if usesCamera, !camera.isAuthorized {
                         CameraPermissionBanner()
                     }
                     actionRow
@@ -38,11 +39,18 @@ struct DashboardView: View {
         .sheet(isPresented: $showPinSetup) { PinSetupView() }
         .sheet(isPresented: $showDisarmSheet) {
             VStack(spacing: 18) {
-                PinPadView(title: "Korumayı kapatmak için PIN gir") { pin in
-                    let ok = engine.disarm(pin: pin)
-                    if ok { showDisarmSheet = false }
-                    return ok
-                }
+                DisarmPanel(
+                    pinTitle: "Korumayı kapatmak için PIN gir",
+                    onPin: { pin in
+                        let ok = engine.disarm(pin: pin)
+                        if ok { showDisarmSheet = false }
+                        return ok
+                    },
+                    onBiometric: { context in
+                        let outcome = await engine.disarm(biometricContext: context)
+                        if outcome == .success { showDisarmSheet = false }
+                        return outcome
+                    })
                 Button("Vazgeç") { showDisarmSheet = false }
                     .buttonStyle(.plain)
                     .foregroundStyle(Theme.textSecondary)
@@ -360,6 +368,7 @@ struct SensorCard: View {
     let kind: TriggerKind
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var engine = GuardEngine.shared
+    @ObservedObject private var camera = CameraPermission.shared
 
     init(kind: TriggerKind) { self.kind = kind }
 
@@ -396,7 +405,7 @@ struct SensorCard: View {
                     .font(.system(size: 11.5))
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                if kind.needsCamera, CameraSensor.authorization != .authorized {
+                if kind.needsCamera, !camera.isAuthorized {
                     Label("Kamera izni gerekli", systemImage: "camera.badge.ellipsis")
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundStyle(Theme.arming)

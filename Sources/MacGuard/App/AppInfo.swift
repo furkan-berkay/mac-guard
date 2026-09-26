@@ -16,6 +16,10 @@ enum AppInfo {
     /// Projenin kaynak adresi. Boşsa gösterilmez.
     static let repositoryURL = "https://github.com/furkan-berkay/mac-guard"
 
+    /// Geliştirme bitene kadar açık: perdelere doğrulamasız "alarmı kapat" düğmesi koyar.
+    /// Yayından önce false yapılmalı; açıkken alarmı herkes kapatabilir.
+    static let developerEscapeHatch = true
+
     // MARK: Sürüm
 
     static var version: String {

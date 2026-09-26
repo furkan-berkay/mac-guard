@@ -121,12 +121,15 @@ struct AlarmOverlayView: View {
                     }
                 }
 
-                PinPadView(title: warning ? "Alarmı önlemek için PIN gir"
-                                          : "Durdurmak için PIN gir") { pin in
-                    engine.disarm(pin: pin)
-                }
+                DisarmPanel(
+                    pinTitle: warning ? "Alarmı önlemek için PIN gir"
+                                      : "Durdurmak için PIN gir",
+                    onPin: { engine.disarm(pin: $0) },
+                    onBiometric: { await engine.disarm(biometricContext: $0) })
                 .frame(width: 320)
                 .padding(.top, 12)
+
+                DeveloperEscapeButton()
 
                 Spacer()
             }

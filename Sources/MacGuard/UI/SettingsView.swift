@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var emergencyError: String?
     @State private var emergencyDone = false
     @State private var now = Date()
+    @State private var sirenAudioWarning: String?
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -54,6 +55,7 @@ struct SettingsView: View {
         }
         .frame(width: 560, height: 680)
         .background(Theme.background)
+        .preferredColorScheme(.dark)
         .sheet(isPresented: $showPinSetup) { PinSetupView() }
         .onAppear { refreshPrivilegeState() }
         .onReceive(clock) { now = $0 }
@@ -123,7 +125,7 @@ struct SettingsView: View {
 
     private var timingSection: some View {
         SettingsSection("Zamanlama", icon: "timer") {
-            Stepper(value: $settings.armDelay, in: 0...60) {
+            Stepper(value: $settings.armDelay, in: Settings.minimumArmDelay...60) {
                 HStack {
                     Text("Devreye girme gecikmesi")
                     Spacer()
@@ -131,7 +133,7 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.textSecondary)
                 }
             }
-            Text("Butona bastıktan sonra kalkıp uzaklaşman için tanınan süre. Kafede 8–10 saniye yeterli.")
+            Text("Butona bastıktan sonra kalkıp uzaklaşman için tanınan süre. Kafede 8–10 saniye yeterli. En az \(Settings.minimumArmDelay) sn: klavye/trackpad sensörü, elini çektikten 2 sn sonra nöbete geçiyor; daha kısa sürede tıklaman onu bekletir.")
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -182,6 +184,24 @@ struct SettingsView: View {
                 }
             }
             Toggle("Dahili hoparlöre geç (kulaklık takılıysa bile)", isOn: $settings.forceBuiltInSpeakers)
+
+            // `now` her saniye yenilendiği için izin verilince satır kendiliğinden güncellenir.
+            let keyLockPermitted = SystemKeyLock.isPermitted
+            HStack(spacing: 8) {
+                Label(keyLockPermitted ? "Korumada sistem tuşları kilitli" : "Korumada sistem tuşları kilitli değil",
+                      systemImage: keyLockPermitted ? "lock.fill" : "lock.open")
+                    .foregroundStyle(keyLockPermitted ? Theme.safe : Theme.arming)
+                Spacer()
+                if !keyLockPermitted {
+                    Button("İzin ver") { SystemKeyLock.requestPermission() }
+                }
+            }
+            .id(now)
+            Text("Koruma açıkken Odak (F6), Spotlight, Dikte, Mission Control ve medya tuşları çalışmaz; klavyeden yalnızca PIN rakamları, sil ve Enter geçer. macOS bunun için Erişilebilirlik izni istiyor: Sistem Ayarları > Gizlilik ve Güvenlik > Erişilebilirlik > MacGuard.")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             Toggle("Sesli uyarı oku", isOn: $settings.speakWarning)
             if settings.speakWarning {
                 TextField("Uyarı metni", text: $settings.warningText, axis: .vertical)
@@ -198,7 +218,7 @@ struct SettingsView: View {
                         .font(.system(size: 11))
                     Spacer()
                 }
-                Text("Telefon bildirimi kapalı olsa da fotoğraf diske yazılır. En son 100 kare saklanır, eskiler silinir. Masaüstü/Belgeler gibi korunan klasörlere bilerek yazılmıyor — oraya yazmak macOS izni gerektirir ve bu uygulama ad-hoc imzalı olduğu için izin her derlemede yeniden sorulur.")
+                Text("Telefon bildirimi kapalı olsa da fotoğraf diske yazılır. En son 100 kare saklanır, eskiler silinir. Masaüstü/Belgeler gibi korunan klasörlere bilerek yazılmıyor — oraya yazmak ayrı bir macOS izni gerektirir.")
                     .font(.system(size: 10.5))
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -206,16 +226,33 @@ struct SettingsView: View {
 
             HStack {
                 Button {
-                    engine.previewSiren(seconds: 3)
+                    // Önizleme sistem sesine dokunmuyor; sessizdeyse hiçbir şey duyulmaz
+                    // ve düğme bozuk sanılıyor.
+                    // Ses seviyesi zorlanmıyorsa önizleme sistem sesiyle çalar;
+                    // sessizdeyse hiçbir şey duyulmaz ve düğme bozuk sanılıyor.
+                    if !settings.forceMaxVolume, AudioOutputControl.isOutputMuted() {
+                        sirenAudioWarning = "Sistem sesi kapalı (sessizde) — önizleme duyulmaz. Sesi açıp tekrar dene."
+                    } else if settings.forceMaxVolume, settings.alarmVolume < 0.05 {
+                        sirenAudioWarning = "Alarm ses seviyesi neredeyse sıfır — önizleme duyulmaz."
+                    } else {
+                        sirenAudioWarning = nil
+                    }
+                    engine.previewSiren()
                 } label: {
-                    Label(engine.isPreviewingSiren ? "Çalıyor…" : "Sireni 3 saniye dinle",
+                    Label(engine.isPreviewingSiren ? "Çalıyor…" : "Alarmı 5 saniye dinle",
                           systemImage: "speaker.wave.2.bubble.left.fill")
                 }
-                .disabled(engine.isPreviewingSiren)
+                .disabled(engine.isPreviewingSiren || engine.state.isProtecting)
                 Spacer()
             }
             .font(.system(size: 12))
-            Text("Önizleme sistem sesini değiştirmez; sesi kendin ayarla. Gerçek alarmda MacGuard sesi zaten %100'e çıkarır.")
+            if let sirenAudioWarning {
+                Label(sirenAudioWarning, systemImage: "speaker.slash.fill")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(Theme.arming)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("Önizleme gerçek alarm gibi çalar: yukarıdaki ses seviyesi ve hoparlör ayarıyla, sesli uyarı açıksa onunla birlikte. Bitince sistem sesin eski hâline döner.")
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -339,6 +376,18 @@ struct SettingsView: View {
 
     private var securitySection: some View {
         SettingsSection("Güvenlik", icon: "lock.shield") {
+            Text("Alarm nasıl susturulsun?")
+                .font(.system(size: 12, weight: .medium))
+            DisarmMethodPicker(method: $settings.disarmMethod,
+                               touchID: BiometricAuth.availability())
+                .disabled(engine.state.isProtecting)
+            if settings.disarmMethod == .touchID {
+                Text("Touch ID kullanılamadığında (kapak kapalı, art arda hatalı deneme) alarm PIN'le susar.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Divider().overlay(Theme.stroke)
             HStack {
                 Text(PinStore.isConfigured ? "PIN tanımlı" : "PIN tanımlı değil")
                     .foregroundStyle(PinStore.isConfigured ? Theme.safe : Theme.danger)

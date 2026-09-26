@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import CoreAudio
 import Combine
+import LocalAuthentication
 
 /// MacGuard'ın durum makinesi: sensörleri kurar, tetikleri alarma çevirir,
 /// PIN doğrulanınca her şeyi eski haline döndürür.
@@ -101,6 +102,10 @@ final class GuardEngine: ObservableObject {
     func arm() {
         guard case .disarmed = state else { return }
         if isCalibrating { stopCalibration() }
+        if isPreviewingSiren {
+            stopAlarmOutputs()
+            isPreviewingSiren = false
+        }
         guard PinStore.isConfigured else {
             lastMessage = "Önce bir PIN belirlemelisin."
             return
@@ -124,7 +129,7 @@ final class GuardEngine: ObservableObject {
     }
 
     private func beginCountdown() {
-        let delay = max(0, settings.armDelay)
+        let delay = max(Settings.minimumArmDelay, settings.armDelay)
         log.log("Koruma başlatılıyor", detail: "\(delay) saniye sonra devrede",
                 icon: "shield.lefthalf.filled", severity: .info)
 
@@ -171,6 +176,9 @@ final class GuardEngine: ObservableObject {
         }
         armedSince = Date()
         state = .armed
+        // Kilit yalnız alarmda kurulursa ilk basılan F6 Odak'ı değiştirip ancak
+        // ondan sonra alarmı çaldırıyordu. Koruma açıkken her tuş zaten alarm.
+        SystemKeyLock.shared.engage()
         if settings.showLockScreen {
             // Ekran uyursa caydırıcı yazı kimseye görünmez.
             sleepBlocker.beginDisplayAwake(reason: "MacGuard koruma ekranı açık")
@@ -205,6 +213,43 @@ final class GuardEngine: ObservableObject {
         lockoutUntil = nil
         teardown(reason: "PIN doğrulandı")
         return true
+    }
+
+    /// Geliştirme sürecindeki kaçış kapısı: doğrulama olmadan her şeyi kapatır.
+    /// `AppInfo.developerEscapeHatch` kapatılınca düğmesi hiçbir yerde görünmez.
+    func developerDisarm() {
+        guard AppInfo.developerEscapeHatch, state.isProtecting else { return }
+        teardown(reason: "Geliştirici düğmesi")
+    }
+
+    /// Touch ID ile korumayı kapatır. PIN bekleme cezası burada geçerli değil:
+    /// o ceza tahmin denemelerine karşı, parmak izi tahmin edilemez ve Touch ID'nin
+    /// kendi deneme kilidi var.
+    func disarm(biometricContext context: LAContext) async -> BiometricAuth.Outcome {
+        guard state.isProtecting else { return .cancelled }
+        let outcome = await BiometricAuth.evaluate(context, reason: "MacGuard korumasını kapat")
+        switch outcome {
+        case .failed(let why):
+            log.log("Touch ID kullanılamadı", detail: why, icon: "touchid", severity: .warn)
+        case .notRecognized:
+            log.log("Tanınmayan parmak izi", icon: "touchid", severity: .warn)
+            // Koruma açıkken birinin parmağını okutması müdahale denemesi. Sensöre
+            // dokunmak girdi sayılmadığı için başka hiçbir tetik bunu yakalamıyor.
+            // Hangi sensörlerin açık olduğundan bağımsız çalar.
+            if case .armed = state {
+                handle(TriggerEvent(kind: .input, message: "Tanınmayan parmak izi okutuldu"),
+                       regardlessOfSensors: true)
+            }
+        case .success, .cancelled:
+            break
+        }
+        // Doğrulama sürerken koruma başka yoldan kapanmış olabilir.
+        guard outcome == .success, state.isProtecting else { return outcome }
+
+        failedAttempts = 0
+        lockoutUntil = nil
+        teardown(reason: "Parmak izi doğrulandı")
+        return .success
     }
 
     /// Alarmı ve korumayı tamamen kapatır, sistemi bulduğu gibi bırakır.
@@ -299,10 +344,10 @@ final class GuardEngine: ObservableObject {
 
     // MARK: - Tetik -> Alarm
 
-    private func handle(_ event: TriggerEvent) {
+    private func handle(_ event: TriggerEvent, regardlessOfSensors: Bool = false) {
         // Sadece koruma tam devredeyken tetik kabul edilir.
         guard case .armed = state else { return }
-        guard settings.isEnabled(event.kind) else { return }
+        guard regardlessOfSensors || settings.isEnabled(event.kind) else { return }
 
         lastTrigger = event
         log.log(event.kind.title, detail: event.message, icon: event.kind.symbol, severity: .alarm)
@@ -321,6 +366,7 @@ final class GuardEngine: ObservableObject {
 
         LockScreenController.shared.hide()
         applyAlarmAudio()
+        SystemKeyLock.shared.engage()
         siren.start(mode: .warning)
         sleepBlocker.beginDisplayAwake()
         AlarmOverlayController.shared.show(reason: event, warning: true)
@@ -355,6 +401,7 @@ final class GuardEngine: ObservableObject {
 
         // 1) Alarmın duyulacağından emin ol.
         applyAlarmAudio()
+        SystemKeyLock.shared.engage()
 
         // 2) Sesi başlat (uyarı bipi çalıyorsa tam sirene yükselir).
         siren.start(mode: .full)
@@ -387,6 +434,7 @@ final class GuardEngine: ObservableObject {
             }
             AudioOutputControl.setOutputVolume(Float(settings.alarmVolume))
         }
+        MediaKeyShield.shared.engage()
         startVolumeWatchdog()
     }
 
@@ -423,6 +471,8 @@ final class GuardEngine: ObservableObject {
         stopVolumeWatchdog()
         siren.stop()
         speech.stop()
+        MediaKeyShield.shared.release()
+        SystemKeyLock.shared.release()
         if let v = previousVolumeScalar {
             AudioOutputControl.setOutputVolume(v)
             AudioOutputControl.setMuted(previousMuted)
@@ -601,13 +651,23 @@ final class GuardEngine: ObservableObject {
 
     /// Sireni birkaç saniye çalar. Sistem sesini değiştirmez —
     /// gerçek alarmın aksine burada sesi sen kontrol edersin.
-    func previewSiren(seconds: Double = 3) {
-        guard !state.isAlarming, !isPreviewingSiren else { return }
+    /// Alarmı gerçekteki gibi kısa süre çalar: aynı ses seviyesi ve çıkış, sesli
+    /// uyarıyla birlikte. Bitince sistem sesi ve çıkış aygıtı eski hâline döner.
+    func previewSiren(seconds: Double = 5) {
+        guard case .disarmed = state, !isPreviewingSiren else { return }
         isPreviewingSiren = true
-        siren.start()
+        applyAlarmAudio()
+        // Önizlemede kısılan sesi geri alan nöbetçiye gerek yok.
+        stopVolumeWatchdog()
+        siren.start(mode: .full)
+        if settings.speakWarning {
+            speech.startRepeating(settings.warningText, every: seconds + 1)
+        }
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            self.siren.stop()
+            // Bu arada koruma açıldıysa ses artık alarmın, dokunma.
+            guard case .disarmed = self.state else { return }
+            self.stopAlarmOutputs()
             self.isPreviewingSiren = false
         }
     }

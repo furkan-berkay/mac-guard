@@ -107,6 +107,7 @@ final class CameraSensor: NSObject, Sensor, AVCaptureVideoDataOutputSampleBuffer
         if status == .authorized { return true }
         let granted = await AVCaptureDevice.requestAccess(for: .video)
         NSLog("MacGuard: kamera izni sonucu = %@", granted ? "verildi" : "reddedildi")
+        await CameraPermission.shared.refresh()
         return granted
     }
 

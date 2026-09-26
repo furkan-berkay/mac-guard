@@ -34,6 +34,9 @@ final class Settings: ObservableObject {
     @Published var armDelay: Int {
         didSet { d.set(armDelay, forKey: "armDelay") }
     }
+    /// Klavye/trackpad sensörünün 2 sn sakinleşme süresi + pay. Daha kısa gecikmede
+    /// "Korumayı başlat" tıklaması sensörü bekletiyor ve fare oynatmak alarm çalmıyordu.
+    static let minimumArmDelay = 3
     /// Tetikten alarma kadar tanınan sessiz süre (saniye). PIN girilirse alarm çalmaz.
     @Published var graceSeconds: Int {
         didSet { d.set(graceSeconds, forKey: "graceSeconds") }
@@ -60,9 +63,12 @@ final class Settings: ObservableObject {
     static let defaultLockScreenText =
         "Bu bilgisayar MacGuard ile korunuyor.\n\n"
         + "\u{2022} Yerinden oynatmak, kapağı kapatmak ya da şarjı çıkarmak alarmı tetikler\n"
-        + "\u{2022} Alarm yalnızca sahibinin PIN'i ile susturulabilir\n"
+        + "\u{2022} Alarm yalnızca sahibinin PIN'i veya parmak izi ile susturulabilir\n"
         + "\u{2022} Tetiklendiği anda kamera fotoğraf çeker ve sahibine bildirim gider\n\n"
         + "Lütfen dokunmayın."
+
+    // MARK: Susturma
+    @Published var disarmMethod: DisarmMethod { didSet { d.set(disarmMethod.rawValue, forKey: "disarmMethod") } }
 
     // MARK: Telefona bildirim (ntfy.sh)
     @Published var pushEnabled: Bool { didSet { d.set(pushEnabled, forKey: "pushEnabled") } }
@@ -78,7 +84,7 @@ final class Settings: ObservableObject {
         motionSensitivity    = d.object(forKey: "motionSensitivity") as? Double ?? 0.030
         motionCoverage       = d.object(forKey: "motionCoverage") as? Double ?? 0.50
         proximityThreshold   = d.object(forKey: "proximityThreshold") as? Double ?? 0.55
-        armDelay             = d.object(forKey: "armDelay") as? Int ?? 8
+        armDelay             = max(Settings.minimumArmDelay, d.object(forKey: "armDelay") as? Int ?? 8)
         graceSeconds         = d.object(forKey: "graceSeconds") as? Int ?? 0
         forceMaxVolume       = d.object(forKey: "forceMaxVolume") as? Bool ?? true
         alarmVolume          = d.object(forKey: "alarmVolume") as? Double ?? 1.0
@@ -92,11 +98,36 @@ final class Settings: ObservableObject {
         pushEnabled          = d.object(forKey: "pushEnabled") as? Bool ?? false
         pushTopic            = d.string(forKey: "pushTopic") ?? ""
         pushServer           = d.string(forKey: "pushServer") ?? "https://ntfy.sh"
+        disarmMethod         = d.string(forKey: "disarmMethod").flatMap(DisarmMethod.init(rawValue:)) ?? .pin
     }
 
     func isEnabled(_ kind: TriggerKind) -> Bool { enabledTriggers.contains(kind) }
 
     func setEnabled(_ kind: TriggerKind, _ on: Bool) {
         if on { enabledTriggers.insert(kind) } else { enabledTriggers.remove(kind) }
+    }
+}
+
+/// Alarmın nasıl susturulacağı. Parmak izi seçilse de PIN yedek olarak durur:
+/// Touch ID kapak kapalıyken ya da art arda hatalı denemeden sonra kilitlenince
+/// sahibi alarmı susturamaz hâle gelmesin.
+enum DisarmMethod: String, CaseIterable, Identifiable {
+    case pin
+    case touchID
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pin:     return "PIN"
+        case .touchID: return "Parmak İzi"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .pin:     return "circle.grid.3x3.fill"
+        case .touchID: return "touchid"
+        }
     }
 }

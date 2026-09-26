@@ -31,7 +31,7 @@ enum TriggerKind: String, Codable, CaseIterable, Identifiable {
         case .power:      return "Şarj adaptörü prizden ya da bilgisayardan çıkarılırsa."
         case .clamshell:  return "Ekran kapağı kapatılırsa."
         case .usb:        return "Bir USB bellek, kablo ya da aygıt takılır/çıkarılırsa."
-        case .input:      return "Elini çektikten 2 sn sonra nöbete geçer; sonraki her dokunuş alarmı çaldırır."
+        case .input:      return "Elini çektikten 2 sn sonra nöbete geçer; sonraki her dokunuş, F tuşları ve güç düğmesine basmak alarmı çaldırır."
         case .display:    return "Harici monitör / dock bağlantısı koparılırsa."
         }
     }
