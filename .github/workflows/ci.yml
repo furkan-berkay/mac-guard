@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Derleme ve uyarı kontrolü
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Araç sürümleri
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Derle (uyarılar hata sayılır)
+        run: swift build -c release -Xswiftc -warnings-as-errors
+
+      - name: .app paketini üret
+        run: ./Scripts/build_app.sh
