@@ -77,6 +77,8 @@ final class GuardEngine: ObservableObject {
 
     private var warningTimer: Timer?
     private var wakeObserver: NSObjectProtocol?
+    /// Alarm anındaki fotoğraf ve telefon bildirimi; kapanmadan önce bitmesi beklenir.
+    private var remoteAlertTask: Task<Void, Never>?
 
     private init() {
         // Kapak kapanıp sistem uyuduysa alarm susar. Uyanır uyanmaz sürdür.
@@ -212,6 +214,7 @@ final class GuardEngine: ObservableObject {
         failedAttempts = 0
         lockoutUntil = nil
         teardown(reason: "PIN doğrulandı")
+        quitAfterDisarm()
         return true
     }
 
@@ -220,6 +223,7 @@ final class GuardEngine: ObservableObject {
     func developerDisarm() {
         guard AppInfo.developerEscapeHatch, state.isProtecting else { return }
         teardown(reason: "Geliştirici düğmesi")
+        quitAfterDisarm()
     }
 
     /// Touch ID ile korumayı kapatır. PIN bekleme cezası burada geçerli değil:
@@ -249,7 +253,29 @@ final class GuardEngine: ObservableObject {
         failedAttempts = 0
         lockoutUntil = nil
         teardown(reason: "Parmak izi doğrulandı")
+        quitAfterDisarm()
         return .success
+    }
+
+    /// Sahibi korumayı kapattıysa uygulama da kapanır; yeniden açmak için
+    /// Denetim Merkezi ya da Dock kullanılır. Alarm anındaki fotoğraf/bildirim
+    /// hâlâ gidiyorsa kanıt yarıda kesilmesin diye en fazla 15 sn beklenir.
+    private func quitAfterDisarm() {
+        let pending = remoteAlertTask
+        remoteAlertTask = nil
+        Task { @MainActor in
+            if let pending {
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { await pending.value }
+                    group.addTask { try? await Task.sleep(nanoseconds: 15_000_000_000) }
+                    await group.next()
+                    group.cancelAll()
+                }
+            }
+            // Bu arada koruma yeniden açıldıysa kapanma.
+            guard case .disarmed = self.state else { return }
+            NSApp.terminate(nil)
+        }
     }
 
     /// Alarmı ve korumayı tamamen kapatır, sistemi bulduğu gibi bırakır.
@@ -418,7 +444,7 @@ final class GuardEngine: ObservableObject {
         OverlayGuardian.shared.start()
 
         // 4) Kanıtı topla ve telefona haber ver.
-        Task { await self.dispatchRemoteAlert(for: event) }
+        remoteAlertTask = Task { await self.dispatchRemoteAlert(for: event) }
     }
 
     /// Sesi alarm seviyesine getirir ve nöbetçiyi başlatır.

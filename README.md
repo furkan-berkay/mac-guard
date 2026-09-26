@@ -234,6 +234,13 @@ Varsayılan 0'dır (tetik gelir gelmez tam alarm). Yanlış alarmdan çekiniyors
 - Kameradan davetsiz misafirin fotoğrafı çekilir
 - Açıksa telefonuna bildirim + fotoğraf gider
 
+Korumayı PIN'le ya da parmak iziyle kapattığında (alarm çalarken de, çalmadan
+önce de) MacGuard **tamamen kapanır**. Alarm anındaki fotoğraf ve telefon
+bildirimi hâlâ gönderiliyorsa kapanmadan önce en fazla 15 saniye bitmesi
+beklenir. Yeniden açmak için Denetim Merkezi'ne bir kestirme ekleyebilirsin:
+Kestirmeler'de "Uygulamayı Aç → MacGuard" adımlı bir kestirme oluştur, sonra
+Denetim Merkezi > Denetimleri Düzenle > Kestirme ile ekle.
+
 Koruma açıkken uygulama **kapatılamaz**; ⌘Q sessizce reddedilir ve perde öne
 alınır. (Eskiden bir uyarı kutusu açılıyordu; kutu perdenin arkasında kaldığı
 için uygulama görünmeyen bir modal'a kilitleniyor ve PIN girilemiyordu.)
